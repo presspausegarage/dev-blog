@@ -1,0 +1,15 @@
+baseURL = "https://presspause.dev/"
+languageCode = "en-us"
+title = "Press Pause Garage"
+
+[params]
+  description = "Games built in stolen hours."
+  tagline = "Lone Man · Gamer"
+  # steam = "https://store.steampowered.com/app/YOURAPPID"  # uncomment when ready
+
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true
+
+paginate = 10
