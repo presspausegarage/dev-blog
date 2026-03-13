@@ -1,0 +1,4 @@
+baseURL = "https://presspause.dev/"
+languageCode = "en-us"
+title = "Press Pause Garage"
+theme = "paper"
