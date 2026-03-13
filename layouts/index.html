@@ -1,0 +1,110 @@
+{{ define "main" }}
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-copy">
+      <div class="hero-eyebrow">Lone Man · Gamer</div>
+      <h1>Games built<em>in stolen hours.</em></h1>
+      <p class="hero-desc">
+        One dad, one garage, one controller. Press Pause Garage is a one-man indie studio making games that feel like 1997 and run like hell.
+      </p>
+    </div>
+    <div class="hero-visual">
+      <div class="garage-door">
+        <div class="status-badge">In Dev</div>
+        <div class="garage-label">
+          <div class="garage-label-text">NO<br>PREP</div>
+          <div class="garage-label-sub">First title — coming soon</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- DEVLOG -->
+  <div class="section-label" id="devlog">
+    <span>Devlog</span>
+  </div>
+
+  {{ $posts := where .Site.RegularPages "Section" "posts" }}
+  {{ $featured := index $posts 0 }}
+  {{ $rest := after 1 $posts }}
+
+  <div class="blog-grid">
+
+    <!-- Featured / Latest Post -->
+    {{ if $featured }}
+    <article class="post-featured">
+      <div class="post-meta">
+        <span class="post-date">{{ $featured.Date.Format "January 2, 2006" }}</span>
+        {{ with $featured.Params.tag }}<span class="post-tag">{{ . }}</span>{{ end }}
+      </div>
+      <h2 class="post-title">{{ $featured.Title }}</h2>
+      <p class="post-excerpt">{{ $featured.Summary }}</p>
+      <a class="post-read-more" href="{{ $featured.Permalink }}">Read more →</a>
+    </article>
+    {{ else }}
+    <article class="post-featured post-empty">
+      <div class="post-meta">
+        <span class="post-date">—</span>
+        <span class="post-tag">Coming Soon</span>
+      </div>
+      <h2 class="post-title">First devlog dropping soon</h2>
+      <p class="post-excerpt">The garage doors are open. First post coming shortly — covering why No Prep exists and what this whole thing is about.</p>
+    </article>
+    {{ end }}
+
+    <!-- Sidebar Posts -->
+    <div class="post-sidebar">
+      {{ range first 2 $rest }}
+      <article class="post-card">
+        <div class="post-meta">
+          <span class="post-date">{{ .Date.Format "January 2, 2006" }}</span>
+          {{ with .Params.tag }}<span class="post-tag">{{ . }}</span>{{ end }}
+        </div>
+        <h2 class="post-title">{{ .Title }}</h2>
+        <p class="post-excerpt">{{ .Summary }}</p>
+        <a class="post-read-more" href="{{ .Permalink }}">Read more →</a>
+      </article>
+      {{ else }}
+      <article class="post-card post-empty">
+        <div class="post-meta">
+          <span class="post-date">—</span>
+          <span class="post-tag">Dev</span>
+        </div>
+        <h2 class="post-title">Choosing an engine for a 90s sidescroller</h2>
+        <p class="post-excerpt">Godot, Unity, or hand-rolled? The surprisingly emotional process of picking your tools.</p>
+      </article>
+      <article class="post-card post-empty">
+        <div class="post-meta">
+          <span class="post-date">—</span>
+          <span class="post-tag">Design</span>
+        </div>
+        <h2 class="post-title">Why No Prep?</h2>
+        <p class="post-excerpt">The name, the concept, and why unprepped track racing is the most honest form of the sport.</p>
+      </article>
+      {{ end }}
+    </div>
+
+  </div>
+
+  <!-- ABOUT STRIP -->
+  <section class="about-strip" id="about-strip">
+    <div class="about-inner">
+      <div class="about-number">01</div>
+      <div class="about-content">
+        <h2>One dev. <span>No excuses.</span></h2>
+        <p>
+          Press Pause Garage is a solo indie studio run out of whatever quiet corner I can find after the kids are asleep. I make the kind of games I wish still existed — raw, fast, and built with genuine love for the era that made gaming feel dangerous and exciting. No Prep is the first title. It won't be the last.
+        </p>
+      </div>
+      <div class="about-cta">
+        <a class="btn btn-primary" href="/about/">Read my story</a>
+        <!-- Steam wishlist button: replace # with Steam URL when ready -->
+        <!-- <a class="btn btn-ghost" href="https://store.steampowered.com/app/YOURAPPID">Wishlist on Steam</a> -->
+      </div>
+    </div>
+  </section>
+
+{{ end }}
