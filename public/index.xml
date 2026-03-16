@@ -2,18 +2,25 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Press Pause Garage</title>
-    <link>http://localhost:1313/</link>
+    <link>https://presspause.dev/</link>
     <description>Recent content on Press Pause Garage</description>
     <generator>Hugo</generator>
     <language>en-us</language>
     <lastBuildDate>Thu, 12 Mar 2026 22:27:13 -0400</lastBuildDate>
-    <atom:link href="http://localhost:1313/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="https://presspause.dev/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Night One</title>
-      <link>http://localhost:1313/posts/night1/</link>
+      <link>https://presspause.dev/posts/night1/</link>
       <pubDate>Thu, 12 Mar 2026 22:27:13 -0400</pubDate>
-      <guid>http://localhost:1313/posts/night1/</guid>
+      <guid>https://presspause.dev/posts/night1/</guid>
       <description>&lt;h2 id=&#34;finding-energy&#34;&gt;FINDING ENERGY&lt;/h2&gt;&#xA;&lt;p&gt;Work, family life, &lt;em&gt;gestures wildly all around&lt;/em&gt;, everything&#xA;is taking a toll but what&amp;rsquo;s left still has fingers that want to move, I guess.&lt;/p&gt;&#xA;&lt;p&gt;I took the very first steps, the simple ones, but they still took time.&#xA;I got the IDE installed, (JetBrains Rider).  I&amp;rsquo;ve started looking at processes,&#xA;actually trying to learn and ingest what I&amp;rsquo;m reading through Claude and simple web search.&lt;/p&gt;&#xA;&lt;p&gt;Anyways, that&amp;rsquo;s night one for me, just devlog one from the dev environment-in-progress.&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>About</title>
+      <link>https://presspause.dev/about/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://presspause.dev/about/</guid>
+      <description>&lt;p&gt;I&amp;rsquo;m a middle-aged dad who builds games in whatever quiet moments the day allows — after bedtime, on weekends, in the margins.&lt;/p&gt;&#xA;&lt;p&gt;Press Pause Garage is my studio. It&amp;rsquo;s named for the thing I do constantly: pause whatever I&amp;rsquo;m playing because someone needs something. A snack. A hug. A ride. Life.&lt;/p&gt;&#xA;&lt;p&gt;I love 90s racing games. I especially love the era when PC gaming felt raw and unpolished and dangerous — when a game could ship on three floppy disks and still blow your mind.&lt;/p&gt;</description>
     </item>
   </channel>
 </rss>
