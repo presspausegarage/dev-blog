@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DRAG ROGUE</title>
+<title>NO PREP v.0001</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -27,7 +27,7 @@
 <canvas id="game"></canvas>
 <script>
 // ============================================================
-//  DRAG ROGUE — 8-bit Roguelike Drag Racing
+//  NO PREP v.0001 — 8-bit Roguelike Drag Racing
 // ============================================================
 
 const W = 400, H = 600;
@@ -754,13 +754,16 @@ function drawMenu() {
   drawCar(W * 0.7, H - 100 - bounce, '#2255dd', '#0a2266', false, 0);
 
   // Title
-  px('DRAG', W / 2, 118, 72, C.red, 'center');
-  px('ROGUE', W / 2, 192, 72, C.yellow, 'center');
+  px('NO', W / 2, 118, 72, C.red, 'center');
+  px('PREP', W / 2, 192, 72, C.yellow, 'center');
 
   ctx.font = 'bold 12px monospace';
   ctx.textAlign = 'center';
   ctx.fillStyle = C.cyan;
   ctx.fillText('8-BIT ROGUELIKE DRAG RACING', W / 2, 220);
+  ctx.fillStyle = '#555';
+  ctx.font = 'bold 10px monospace';
+  ctx.fillText('v.0001', W / 2, 238);
 
   if (Math.floor(frame / 28) % 2 === 0) {
     px('PRESS SPACE TO RACE', W / 2, 262, 14, C.white, 'center');
