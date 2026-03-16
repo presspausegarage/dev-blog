@@ -9,6 +9,7 @@
   body {
     background: #000;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
@@ -18,13 +19,70 @@
     image-rendering: pixelated;
     image-rendering: crisp-edges;
     display: block;
+    width: min(400px, 100vw);
+    aspect-ratio: 400 / 600;
     border: 2px solid #222;
     box-shadow: 0 0 40px rgba(255,60,0,0.3);
   }
+  #touch-ui {
+    width: min(400px, 100vw);
+    display: none;
+    padding: 6px 8px 4px;
+    gap: 6px;
+    background: #050508;
+    border: 2px solid #222;
+    border-top: none;
+    box-sizing: border-box;
+  }
+  #touch-race   { display: none; flex-direction: row; gap: 8px; }
+  #touch-menu   { display: none; }
+  #touch-upgrade{ display: none; flex-direction: row; gap: 6px; }
+  #touch-over   { display: none; }
+  .touch-btn {
+    background: #0a0a18;
+    border: 2px solid #2a2a44;
+    color: #ccc;
+    font-family: monospace;
+    font-weight: bold;
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    padding: 12px 0;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    touch-action: none;
+    text-transform: uppercase;
+    flex: 1;
+    transition: background 0.08s, border-color 0.08s;
+  }
+  .touch-btn:active { background: #1a1a30; border-color: #ffd700; color: #fff; }
+  #btn-shift { flex: 2.5; border-color: #ff7700; color: #ff9933; font-size: 16px; }
+  #btn-shift:active { background: #1a0800; border-color: #ff7700; }
+  #btn-nos   { border-color: #ff3333; color: #ff5555; }
+  #btn-nos:active { background: #1a0000; border-color: #ff3333; }
+  #btn-start, #btn-retry { width: 100%; letter-spacing: 0.2em; color: #f0f0f0; border-color: #ffd700; font-size: 15px; }
+  #btn-select { flex: 2; border-color: #39ff14; color: #39ff14; }
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
+<div id="touch-ui">
+  <div id="touch-race">
+    <button id="btn-nos" class="touch-btn">NOS</button>
+    <button id="btn-shift" class="touch-btn">SHIFT ▲</button>
+  </div>
+  <div id="touch-menu">
+    <button id="btn-start" class="touch-btn">TAP TO RACE</button>
+  </div>
+  <div id="touch-upgrade">
+    <button id="btn-up" class="touch-btn">▲</button>
+    <button id="btn-select" class="touch-btn">SELECT</button>
+    <button id="btn-down" class="touch-btn">▼</button>
+  </div>
+  <div id="touch-over">
+    <button id="btn-retry" class="touch-btn">RETRY</button>
+  </div>
+</div>
 <script>
 // ============================================================
 //  NO PREP v.0001 — 8-bit Roguelike Drag Racing
@@ -540,10 +598,27 @@ function drawFinishLine(playerDist) {
 }
 
 // ---- Car ----
-function drawCar(x, y, color, color2, nosActive, flash) {
+function drawCar(x, y, color, color2, nosActive, flash, speed=0) {
   const cw = 24, ch = 42;
-  const bx = Math.floor(x - cw / 2);
-  const by = Math.floor(y - ch / 2);
+
+  // Body shake at high speed
+  const shaking = speed > 140 && frame % 2 === 0;
+  const shakeY = shaking ? (frame % 4 < 2 ? 1 : -1) : 0;
+  const shakeX = shaking && speed > 220 ? (frame % 6 < 3 ? 1 : -1) : 0;
+
+  const bx = Math.floor(x - cw / 2) + shakeX;
+  const by = Math.floor(y - ch / 2) + shakeY;
+
+  // Speed trail at high speed
+  if (speed > 90) {
+    const trailAlpha = Math.min(0.22, (speed - 90) / 380);
+    ctx.globalAlpha = trailAlpha;
+    ctx.fillStyle = color;
+    ctx.fillRect(bx, by - 5, cw, ch);
+    ctx.globalAlpha = trailAlpha * 0.5;
+    ctx.fillRect(bx, by - 9, cw, ch * 0.7);
+    ctx.globalAlpha = 1;
+  }
 
   // Shadow
   ctx.fillStyle = 'rgba(0,0,0,0.4)';
@@ -575,23 +650,28 @@ function drawCar(x, y, color, color2, nosActive, flash) {
   ctx.fillRect(bx + 3, by + ch - 4, 5, 3);
   ctx.fillRect(bx + cw - 8, by + ch - 4, 5, 3);
 
-  // Wheels
-  ctx.fillStyle = '#111';
-  ctx.fillRect(bx - 4, by + 5, 5, 10);
-  ctx.fillRect(bx + cw - 1, by + 5, 5, 10);
-  ctx.fillRect(bx - 4, by + ch - 16, 5, 10);
-  ctx.fillRect(bx + cw - 1, by + ch - 16, 5, 10);
-  ctx.fillStyle = '#555';
-  ctx.fillRect(bx - 3, by + 6, 3, 8);
-  ctx.fillRect(bx + cw, by + 6, 3, 8);
-  ctx.fillRect(bx - 3, by + ch - 15, 3, 8);
-  ctx.fillRect(bx + cw, by + ch - 15, 3, 8);
+  // Wheels + spin animation
+  const spinStep = Math.floor(frame * Math.max(0.08, speed * 0.007)) % 4;
+  const spokeH = ['#777','#222','#777','#444'];
+  const spokeV = ['#222','#777','#444','#777'];
+  function drawWheel(wx, wy) {
+    ctx.fillStyle = '#111';
+    ctx.fillRect(wx, wy, 5, 10);
+    ctx.fillStyle = spokeH[spinStep];
+    ctx.fillRect(wx, wy + 4, 5, 2); // horizontal spoke
+    ctx.fillStyle = spokeV[spinStep];
+    ctx.fillRect(wx + 2, wy, 1, 10); // vertical spoke
+  }
+  drawWheel(bx - 4, by + 5);
+  drawWheel(bx + cw - 1, by + 5);
+  drawWheel(bx - 4, by + ch - 16);
+  drawWheel(bx + cw - 1, by + ch - 16);
 
   // NOS flame
   if (nosActive) {
     const fc = ['#ff6600','#ffaa00','#ffff00'];
     for (let i = 0; i < 5; i++) {
-      ctx.fillStyle = fc[i % fc.length];
+      ctx.fillStyle = fc[(i + Math.floor(frame / 2)) % fc.length];
       ctx.fillRect(bx + 3 + i * 4, by + ch + i * 2, 4, 10 - i * 1.5);
     }
   }
@@ -824,8 +904,8 @@ function drawRaceScreen() {
   drawSpeedLines(player.speed);
   drawFinishLine(player.dist);
   drawParticles();
-  drawCar(opponent.x, CAR_Y, opponent.color, opponent.color2, false, 0);
-  drawCar(player.x, CAR_Y, player.color, player.color2, player.nosActive, player.perfectFlash);
+  drawCar(opponent.x, CAR_Y, opponent.color, opponent.color2, false, 0, opponent.speed);
+  drawCar(player.x, CAR_Y, player.color, player.color2, player.nosActive, player.perfectFlash, player.speed);
   drawRPMGauge();
   drawHUD();
 
@@ -995,6 +1075,128 @@ window.addEventListener('keydown', e => {
   if (e.code === 'Space') e.preventDefault();
 }, { passive: false });
 
+// ---- Music ----
+let musicNodes = [];
+let musicPlaying = false;
+
+function stopMusic() {
+  musicNodes.forEach(n => { try { n.stop(); } catch(e){} });
+  musicNodes = [];
+  musicPlaying = false;
+}
+
+function playMusic() {
+  if (!audioCtx || musicPlaying) return;
+  stopMusic();
+  musicPlaying = true;
+
+  // 8-bit NES-style theme: "Street Kings" - pentatonic riff, square wave
+  const BPM = 172;
+  const B = 60 / BPM;       // 1 beat
+  const S = B / 2;           // 1 step (eighth note)
+
+  // Melody: freq, duration, delay
+  const melody = [
+    // Bar 1 — driving hook
+    [330,S*1,0],[392,S*0.5,S],[440,S*0.5,S*1.5],[494,S*1,S*2],[440,S*0.5,S*3],[392,S*0.5,S*3.5],
+    [330,S*1,S*4],[0,S*0.5,S*5],[330,S*0.5,S*5.5],[370,S*1,S*6],[330,S*0.5,S*7],[294,S*0.5,S*7.5],
+    // Bar 2 — build
+    [330,S*0.5,S*8],[392,S*0.5,S*8.5],[440,S*1,S*9],[494,S*0.5,S*10],[523,S*0.5,S*10.5],[587,S*1,S*11],[523,S*0.5,S*12],[494,S*0.5,S*12.5],
+    [440,S*1,S*13],[392,S*0.5,S*14],[440,S*0.5,S*14.5],[494,S*2,S*15],
+    // Bar 3 — answer phrase
+    [659,S*1,S*17],[587,S*0.5,S*18],[523,S*0.5,S*18.5],[494,S*1,S*19],[440,S*0.5,S*20],[392,S*0.5,S*20.5],
+    [330,S*1.5,S*21],[294,S*0.5,S*22.5],[330,S*0.5,S*23],[370,S*0.5,S*23.5],
+    // Bar 4 — resolve + loop tag
+    [392,S*1,S*24],[440,S*0.5,S*25],[494,S*0.5,S*25.5],[440,S*1,S*26],[392,S*0.5,S*27],[370,S*0.5,S*27.5],
+    [330,S*3,S*28],[0,S*1,S*31],
+  ];
+
+  const loopLen = S * 32;
+
+  function scheduleLoop(startTime) {
+    if (!musicPlaying) return;
+    melody.forEach(([freq, dur, offset]) => {
+      if (freq === 0) return;
+      const osc = audioCtx.createOscillator();
+      const g   = audioCtx.createGain();
+      osc.connect(g); g.connect(audioCtx.destination);
+      osc.type = 'square';
+      osc.frequency.value = freq;
+      const t0 = startTime + offset;
+      const t1 = t0 + dur * 0.88;
+      g.gain.setValueAtTime(0.055, t0);
+      g.gain.setValueAtTime(0.055, t1 - 0.01);
+      g.gain.linearRampToValueAtTime(0, t1);
+      osc.start(t0); osc.stop(t1);
+      musicNodes.push(osc);
+    });
+    // Bass line
+    const bassLine = [
+      [82,S*2,0],[98,S*2,S*2],[110,S*2,S*4],[98,S*2,S*6],
+      [82,S*2,S*8],[98,S*2,S*10],[123,S*2,S*12],[110,S*2,S*14],
+      [82,S*2,S*16],[98,S*2,S*18],[110,S*2,S*20],[98,S*2,S*22],
+      [82,S*2,S*24],[110,S*2,S*26],[98,S*2,S*28],[82,S*2,S*30],
+    ];
+    bassLine.forEach(([freq, dur, offset]) => {
+      const osc = audioCtx.createOscillator();
+      const g   = audioCtx.createGain();
+      osc.connect(g); g.connect(audioCtx.destination);
+      osc.type = 'sawtooth';
+      osc.frequency.value = freq;
+      const t0 = startTime + offset;
+      const t1 = t0 + dur * 0.8;
+      g.gain.setValueAtTime(0.03, t0);
+      g.gain.linearRampToValueAtTime(0, t1);
+      osc.start(t0); osc.stop(t1);
+      musicNodes.push(osc);
+    });
+    // Schedule next loop
+    setTimeout(() => scheduleLoop(startTime + loopLen), (loopLen - 0.5) * 1000);
+  }
+
+  scheduleLoop(audioCtx.currentTime + 0.05);
+}
+
+// ---- Touch Controls ----
+const touchUI  = document.getElementById('touch-ui');
+const tRace    = document.getElementById('touch-race');
+const tMenu    = document.getElementById('touch-menu');
+const tUpgrade = document.getElementById('touch-upgrade');
+const tOver    = document.getElementById('touch-over');
+
+function updateTouchUI() {
+  const isTouch = navigator.maxTouchPoints > 0;
+  touchUI.style.display  = isTouch ? 'block' : 'none';
+  tRace.style.display    = (isTouch && (state === 'racing' || state === 'countdown')) ? 'flex' : 'none';
+  tMenu.style.display    = (isTouch && state === 'menu') ? 'block' : 'none';
+  tUpgrade.style.display = (isTouch && state === 'upgrade') ? 'flex' : 'none';
+  tOver.style.display    = (isTouch && (state === 'gameover' || state === 'win')) ? 'block' : 'none';
+}
+
+function touchAction(action) {
+  initAudio();
+  if (action === 'start')  { initRun(); setupRace(); }
+  if (action === 'shift')  { shiftUp(); }
+  if (action === 'nos')    { useNOS(); }
+  if (action === 'up')     { selectedUpg = Math.max(0, selectedUpg - 1); }
+  if (action === 'down')   { selectedUpg = Math.min(2, selectedUpg + 1); }
+  if (action === 'select') { pickUpgradeAndContinue(selectedUpg); }
+  if (action === 'retry')  { state = 'menu'; }
+}
+
+function addTouchBtn(id, action) {
+  const el = document.getElementById(id);
+  el.addEventListener('touchstart', e => { e.preventDefault(); touchAction(action); }, { passive: false });
+}
+
+addTouchBtn('btn-start',  'start');
+addTouchBtn('btn-shift',  'shift');
+addTouchBtn('btn-nos',    'nos');
+addTouchBtn('btn-up',     'up');
+addTouchBtn('btn-down',   'down');
+addTouchBtn('btn-select', 'select');
+addTouchBtn('btn-retry',  'retry');
+
 // ---- Main Loop ----
 let lastTs = 0;
 function loop(ts) {
@@ -1006,10 +1208,12 @@ function loop(ts) {
   ctx.fillRect(0, 0, W, H);
 
   if (flashMsg.timer > 0) flashMsg.timer -= dt;
+  updateTouchUI();
 
   switch (state) {
 
     case 'menu':
+      stopMusic();
       drawMenu();
       break;
 
@@ -1037,6 +1241,7 @@ function loop(ts) {
           player.rpm = 3200 * player.launchBoost;
           player.speed = 22 * player.launchBoost;
           state = 'racing';
+          playMusic();
         }
       }
 
