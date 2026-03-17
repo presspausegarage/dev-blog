@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NO PREP v.0001</title>
+<title>NO PREP v.0002</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -38,6 +38,7 @@
   #touch-menu   { display: none; }
   #touch-upgrade{ display: none; flex-direction: row; gap: 6px; }
   #touch-over   { display: none; }
+  #touch-carsel { display: none; flex-direction: row; gap: 6px; }
   .touch-btn {
     background: #0a0a18;
     border: 2px solid #2a2a44;
@@ -62,6 +63,8 @@
   #btn-nos:active { background: #1a0000; border-color: #ff3333; }
   #btn-start, #btn-retry { width: 100%; letter-spacing: 0.2em; color: #f0f0f0; border-color: #ffd700; font-size: 15px; }
   #btn-select { flex: 2; border-color: #39ff14; color: #39ff14; }
+  #btn-car-sel { flex: 2; border-color: #1a0e00; color: #1a0e00; background: #f0e8c8; font-size: 11px; }
+  #btn-car-up, #btn-car-down { border-color: #555; color: #ccc; }
 </style>
 </head>
 <body>
@@ -72,7 +75,7 @@
     <button id="btn-shift" class="touch-btn">SHIFT ▲</button>
   </div>
   <div id="touch-menu">
-    <button id="btn-start" class="touch-btn">TAP TO RACE</button>
+    <button id="btn-start" class="touch-btn">TAP TO BROWSE CARS</button>
   </div>
   <div id="touch-upgrade">
     <button id="btn-up" class="touch-btn">▲</button>
@@ -82,10 +85,16 @@
   <div id="touch-over">
     <button id="btn-retry" class="touch-btn">RETRY</button>
   </div>
+  <div id="touch-carsel">
+    <button id="btn-car-up" class="touch-btn">▲</button>
+    <button id="btn-car-sel" class="touch-btn">RACE THIS CAR</button>
+    <button id="btn-car-down" class="touch-btn">▼</button>
+  </div>
 </div>
 <script>
 // ============================================================
-//  NO PREP v.0001 — 8-bit Roguelike Drag Racing
+//  NO PREP v.0002 — 8-bit Roguelike Drag Racing
+//  + Car Classifieds · The King Final Boss
 // ============================================================
 
 const W = 400, H = 600;
@@ -97,25 +106,58 @@ ctx.imageSmoothingEnabled = false;
 
 // ---- Palette ----
 const C = {
-  bg:       '#08080f',
-  asphalt:  '#1e1e28',
-  asphalt2: '#252530',
-  white:    '#f0f0f0',
-  yellow:   '#ffd700',
-  red:      '#ff3333',
-  green:    '#33ff66',
-  blue:     '#3366ff',
-  cyan:     '#00e5ff',
-  orange:   '#ff7700',
-  purple:   '#bb44ff',
-  neon:     '#39ff14',
-  dark:     '#0a0a14',
+  bg:      '#08080f',
+  asphalt: '#1e1e28',
+  asph2:   '#252530',
+  white:   '#f0f0f0',
+  yellow:  '#ffd700',
+  red:     '#ff3333',
+  green:   '#33ff66',
+  blue:    '#3366ff',
+  cyan:    '#00e5ff',
+  orange:  '#ff7700',
+  purple:  '#bb44ff',
+  neon:    '#39ff14',
+  dark:    '#0a0a14',
+  paper:   '#f0e8c8',
+  ink:     '#1a0e00',
 };
+
+// ---- Cars (from The No Prep Classifieds) ----
+const CARS = [
+  { year:1962, make:'Plymouth',   model:'Fury',       price:530,  speed:9,  accel:7,  handling:7,  desc:'Needs work. Auto' },
+  { year:1963, make:'Ford',       model:'Falcon',     price:550,  speed:8,  accel:10, handling:8,  desc:'Basic transportation. Auto' },
+  { year:1960, make:'Mercury',    model:'Monterey',   price:600,  speed:7,  accel:10, handling:10, desc:'Runs, Great buy. Auto' },
+  { year:1961, make:'Ford',       model:'T-Bird',     price:800,  speed:7,  accel:7,  handling:7,  desc:'Excellent condition, Auto' },
+  { year:1966, make:'Ford',       model:'Galaxie',    price:975,  speed:6,  accel:3,  handling:3,  desc:'V8, Good work car, very reliable' },
+  { year:1951, make:'Ford',       model:'Victoria',   price:1050, speed:5,  accel:4,  handling:5,  desc:'Near original condition. Auto' },
+  { year:1963, make:'Chevrolet',  model:'Corvette',   price:1150, speed:4,  accel:5,  handling:6,  desc:'V8, sounds nice. Auto' },
+  { year:1961, make:'Chrysler',   model:'Imperial',   price:1650, speed:6,  accel:10, handling:10, desc:'V8, 3sp., Good Mileage' },
+  { year:1964, make:'Ford',       model:'Fairlane',   price:1750, speed:9,  accel:7,  handling:9,  desc:'Must sell, can drive home' },
+  { year:1967, make:'Mercury',    model:'Cougar',     price:1900, speed:6,  accel:8,  handling:4,  desc:'V8, Cool car' },
+  { year:1965, make:'Ford',       model:'Mustang',    price:2000, speed:4,  accel:9,  handling:7,  desc:'V8, 4sp., Good tires' },
+  { year:1958, make:'Plymouth',   model:'Belvedere',  price:2300, speed:7,  accel:8,  handling:9,  desc:'Fast' },
+  { year:1969, make:'Pontiac',    model:'Firebird',   price:2300, speed:10, accel:6,  handling:2,  desc:'V8, 4sp., Never wrecked' },
+  { year:1967, make:'Chevrolet',  model:'Camaro',     price:2500, speed:8,  accel:4,  handling:8,  desc:'Custom, Like new' },
+  { year:1966, make:'Pontiac',    model:'G.T.O.',     price:2600, speed:4,  accel:3,  handling:6,  desc:'V8, 3sp., Potential' },
+  { year:1968, make:'Chevrolet',  model:'Chevelle SS',price:2750, speed:9,  accel:8,  handling:7,  desc:'EB, 4 sp. Dual Exh' },
+  { year:1968, make:'Ford',       model:'Torino',     price:2950, speed:2,  accel:5,  handling:6,  desc:'429, 4 sp., Quick' },
+  { year:1966, make:'Oldsmobile', model:'4-4-2',      price:3100, speed:8,  accel:2,  handling:4,  desc:'EB, Lots of Extras, Collectors car' },
+  { year:1966, make:'Dodge',      model:'Charger',    price:4200, speed:10, accel:10, handling:10, desc:'Ultra Fast, See to appreciate' },
+  { year:1968, make:'Chevrolet',  model:'Chevrolet',  price:4500, speed:4,  accel:2,  handling:3,  desc:'Ultra Fast, Beautiful' },
+  { year:1969, make:'Shelby',     model:'GT500',      price:4600, speed:10, accel:9,  handling:6,  desc:'Very Fast, Loaded' },
+];
+const CARS_VISIBLE = 8;
+
+// The King — not selectable by the player
+const KING_CAR = { year:1969, make:'Shelby', model:'GT500', speed:10, accel:10, handling:10 };
+
+let playerCar    = CARS[1]; // default: Falcon
+let carSelectIdx = 1;
 
 // ---- Audio ----
 let audioCtx = null;
-let engineOsc = null, engineGain = null;
-let engineOsc2 = null;
+let engineOsc = null, engineGain = null, engineOsc2 = null;
 
 function initAudio() {
   if (audioCtx) return;
@@ -124,12 +166,10 @@ function initAudio() {
     engineGain = audioCtx.createGain();
     engineGain.gain.value = 0;
     engineGain.connect(audioCtx.destination);
-
     engineOsc = audioCtx.createOscillator();
     engineOsc.type = 'sawtooth';
     engineOsc.frequency.value = 80;
     engineOsc.connect(engineGain);
-
     engineOsc2 = audioCtx.createOscillator();
     engineOsc2.type = 'square';
     engineOsc2.frequency.value = 40;
@@ -137,7 +177,6 @@ function initAudio() {
     g2.gain.value = 0.4;
     engineOsc2.connect(g2);
     g2.connect(engineGain);
-
     engineOsc.start();
     engineOsc2.start();
   } catch(e) { audioCtx = null; }
@@ -182,47 +221,39 @@ function playNOS() {
   noise.start(); noise.stop(audioCtx.currentTime + 0.3);
 }
 
-function playCountBeep(isGo) {
-  playBlip(isGo ? 880 : 440, isGo ? 0.3 : 0.15);
-}
-
-function playWin() {
-  [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => playBlip(f, 0.2), i * 120));
-}
-
-function playLose() {
-  [400, 300, 200].forEach((f, i) => setTimeout(() => playBlip(f, 0.25, 'sawtooth'), i * 150));
-}
+function playCountBeep(isGo) { playBlip(isGo ? 880 : 440, isGo ? 0.3 : 0.15); }
+function playWin() { [523,659,784,1047].forEach((f,i) => setTimeout(()=>playBlip(f,0.2),i*120)); }
+function playLose() { [400,300,200].forEach((f,i) => setTimeout(()=>playBlip(f,0.25,'sawtooth'),i*150)); }
 
 // ---- Constants ----
-const NUM_GEARS   = 6;
-const MAX_RPM     = 8000;
-const IDLE_RPM    = 900;
-const RACE_DIST   = 1200;
+const NUM_GEARS  = 6;
+const MAX_RPM    = 8000;
+const IDLE_RPM   = 900;
+const RACE_DIST  = 1200;
 const TRACK_SCALE = 0.45;
 
 // ---- Upgrades ----
 const UPGRADES = [
-  { id:'engine',   name:'ENGINE BOOST',   desc:'+18% ACCELERATION',        color:'#ff7700', apply: p => { p.accel *= 1.18; } },
-  { id:'tires',    name:'DRAG SLICKS',    desc:'+22% GRIP / SHIFT ZONE',   color:'#00e5ff', apply: p => { p.grip *= 1.22; p.shiftWindow *= 1.15; } },
-  { id:'turbo',    name:'TURBO KIT',      desc:'+12% TOP SPEED',           color:'#bb44ff', apply: p => { p.topSpeed *= 1.12; } },
-  { id:'nos',      name:'NOS TANK',       desc:'NITRO BOOST ×1 PER RACE',  color:'#ff3333', apply: p => { p.nosCharges++; } },
-  { id:'launch',   name:'LAUNCH CTRL',    desc:'+35% LAUNCH POWER',        color:'#39ff14', apply: p => { p.launchBoost *= 1.35; } },
-  { id:'light',    name:'CARBON BODY',    desc:'+9% ALL PERFORMANCE',      color:'#ffd700', apply: p => { p.accel *= 1.09; p.topSpeed *= 1.09; p.grip *= 1.09; } },
-  { id:'fuel',     name:'RACE FUEL',      desc:'+10% RPM BUILD RATE',      color:'#33ff66', apply: p => { p.rpmBuild *= 1.10; } },
-  { id:'trans',    name:'SHORT SHIFT KIT',desc:'+30% SHIFT WINDOW SIZE',   color:'#00e5ff', apply: p => { p.shiftWindow *= 1.30; } },
-  { id:'inter',    name:'INTERCOOLER',    desc:'+15% RPM BUILD RATE',      color:'#bb44ff', apply: p => { p.rpmBuild *= 1.15; } },
-  { id:'exhaust',  name:'EXHAUST SYSTEM', desc:'PERFECT SHIFTS GIVE BOOST',color:'#ff7700', apply: p => { p.exhaustBoost = true; } },
+  { id:'engine',  name:'ENGINE BOOST',    desc:'+18% ACCELERATION',         color:'#ff7700', apply: p => { p.accel *= 1.18; } },
+  { id:'tires',   name:'DRAG SLICKS',     desc:'+22% GRIP / SHIFT ZONE',    color:'#00e5ff', apply: p => { p.grip *= 1.22; p.shiftWindow *= 1.15; } },
+  { id:'turbo',   name:'TURBO KIT',       desc:'+12% TOP SPEED',            color:'#bb44ff', apply: p => { p.topSpeed *= 1.12; } },
+  { id:'nos',     name:'NOS TANK',        desc:'NITRO BOOST ×1 PER RACE',   color:'#ff3333', apply: p => { p.nosCharges++; } },
+  { id:'launch',  name:'LAUNCH CTRL',     desc:'+35% LAUNCH POWER',         color:'#39ff14', apply: p => { p.launchBoost *= 1.35; } },
+  { id:'light',   name:'CARBON BODY',     desc:'+9% ALL PERFORMANCE',       color:'#ffd700', apply: p => { p.accel*=1.09; p.topSpeed*=1.09; p.grip*=1.09; } },
+  { id:'fuel',    name:'RACE FUEL',       desc:'+10% RPM BUILD RATE',       color:'#33ff66', apply: p => { p.rpmBuild *= 1.10; } },
+  { id:'trans',   name:'SHORT SHIFT KIT', desc:'+30% SHIFT WINDOW SIZE',    color:'#00e5ff', apply: p => { p.shiftWindow *= 1.30; } },
+  { id:'inter',   name:'INTERCOOLER',     desc:'+15% RPM BUILD RATE',       color:'#bb44ff', apply: p => { p.rpmBuild *= 1.15; } },
+  { id:'exhaust', name:'EXHAUST SYSTEM',  desc:'PERFECT SHIFTS GIVE BOOST', color:'#ff7700', apply: p => { p.exhaustBoost = true; } },
 ];
 
 // ---- Modifiers ----
 const MODIFIERS = [
-  { id:'none',      name:'CLEAR DAY',    desc:'NO MODIFIERS',              color:C.white,  apply:()=>{} },
-  { id:'tailwind',  name:'TAILWIND!',    desc:'+6% PLAYER SPEED',          color:C.neon,   apply:(p)=>{ p.topSpeed *= 1.06; } },
-  { id:'headwind',  name:'HEADWIND!',    desc:'-9% TOP SPEED',             color:C.red,    apply:(p)=>{ p.topSpeed *= 0.91; } },
-  { id:'rain',      name:'RAIN RACE!',   desc:'SHIFT ZONES -25%',          color:C.blue,   apply:(p)=>{ p.shiftWindow *= 0.75; } },
-  { id:'crowd',     name:'CROWD HYPE!',  desc:'FREE NOS CHARGE',           color:C.yellow, apply:(p)=>{ p.nosCharges++; } },
-  { id:'police',    name:'STREET RACE!', desc:'+8% OPPONENT SPEED',        color:C.red,    apply:(_,o)=>{ o.baseSpeed *= 1.08; } },
+  { id:'none',     name:'CLEAR DAY',   desc:'NO MODIFIERS',         color:C.white,  apply:()=>{} },
+  { id:'tailwind', name:'TAILWIND!',   desc:'+6% PLAYER SPEED',     color:C.neon,   apply:(p)=>{ p.topSpeed*=1.06; } },
+  { id:'headwind', name:'HEADWIND!',   desc:'-9% TOP SPEED',        color:C.red,    apply:(p)=>{ p.topSpeed*=0.91; } },
+  { id:'rain',     name:'RAIN RACE!',  desc:'SHIFT ZONES -25%',     color:C.blue,   apply:(p)=>{ p.shiftWindow*=0.75; } },
+  { id:'crowd',    name:'CROWD HYPE!', desc:'FREE NOS CHARGE',      color:C.yellow, apply:(p)=>{ p.nosCharges++; } },
+  { id:'police',   name:'STREET RACE!',desc:'+8% OPPONENT SPEED',   color:C.red,    apply:(_,o)=>{ o.baseSpeed*=1.08; } },
 ];
 
 // ---- Particles ----
@@ -232,11 +263,10 @@ function spawnExhaust(x, y, nos) {
   for (let i = 0; i < (nos ? 4 : 1); i++) {
     particles.push({
       x, y,
-      vx: (Math.random() - 0.5) * (nos ? 40 : 15),
-      vy: (Math.random() * 20 + 8) * (nos ? 2 : 1),
-      life: nos ? 0.6 : 0.3,
-      maxLife: nos ? 0.6 : 0.3,
-      size: nos ? 5 : 3,
+      vx: (Math.random()-0.5)*(nos?40:15),
+      vy: (Math.random()*20+8)*(nos?2:1),
+      life: nos?0.6:0.3, maxLife: nos?0.6:0.3,
+      size: nos?5:3,
       color: nos ? '#ff6600' : '#666688',
     });
   }
@@ -244,45 +274,43 @@ function spawnExhaust(x, y, nos) {
 
 function updateParticles(dt) {
   particles = particles.filter(p => {
-    p.x += p.vx * dt;
-    p.y += p.vy * dt;
-    p.life -= dt;
-    return p.life > 0;
+    p.x += p.vx*dt; p.y += p.vy*dt; p.life -= dt; return p.life > 0;
   });
 }
 
 function drawParticles() {
   particles.forEach(p => {
-    ctx.globalAlpha = (p.life / p.maxLife) * 0.8;
+    ctx.globalAlpha = (p.life/p.maxLife)*0.8;
     ctx.fillStyle = p.color;
-    const s = p.size * (p.life / p.maxLife);
-    ctx.fillRect(Math.floor(p.x - s/2), Math.floor(p.y - s/2), Math.floor(s), Math.floor(s));
+    const s = p.size*(p.life/p.maxLife);
+    ctx.fillRect(Math.floor(p.x-s/2), Math.floor(p.y-s/2), Math.floor(s), Math.floor(s));
   });
   ctx.globalAlpha = 1;
 }
 
+// ---- Stat Multiplier ----
+function statMult(val, lo, hi) {
+  return lo + ((val - 1) / 9) * (hi - lo);
+}
+
 // ---- Game Objects ----
 function createPlayer() {
+  const c = playerCar;
   return {
     dist: 0, speed: 0,
     rpm: IDLE_RPM,
     gear: 1,
-    // stat multipliers
-    accel: 1.0,
-    topSpeed: 1.0,
-    grip: 1.0,
-    launchBoost: 1.0,
-    rpmBuild: 1.0,
-    shiftWindow: 1.0,
-    nosCharges: 0,
+    accel:       statMult(c.accel,    0.62, 1.28),
+    topSpeed:    statMult(c.speed,    0.65, 1.25),
+    grip:        statMult(c.handling, 0.70, 1.25),
+    launchBoost: statMult(c.accel,    0.70, 1.20),
+    rpmBuild:    1.0,
+    shiftWindow: statMult(c.handling, 0.75, 1.25),
+    nosCharges:  0,
     exhaustBoost: false,
-    // per-race state
-    nosActive: false,
-    nosFuel: 0,
-    launched: false,
-    shiftCooldown: 0,
-    overrevTimer: 0,
-    perfectFlash: 0,
+    nosActive:   false, nosFuel: 0,
+    launched:    false,
+    shiftCooldown: 0, overrevTimer: 0, perfectFlash: 0,
     upgradeList: [],
     x: W * 0.3,
     color: '#e03020', color2: '#881a10',
@@ -290,13 +318,22 @@ function createPlayer() {
 }
 
 function createOpponent(raceNum) {
-  // Scales from ~0.72 (race 1) to ~1.05 (race 5)
+  if (raceNum >= 5) {
+    return {
+      dist: 0, speed: 0,
+      baseSpeed: 1.08,
+      isKing: true,
+      gear: 1, gearTimer: 0, gearInterval: 1.8,
+      x: W * 0.7,
+      color: '#0d0800', color2: '#c8a000', // black with gold stripe
+    };
+  }
   const d = 0.72 + (raceNum - 1) * 0.083;
   return {
     dist: 0, speed: 0,
     baseSpeed: d,
-    gear: 1,
-    gearTimer: 0, gearInterval: 2.8 - raceNum * 0.2,
+    isKing: false,
+    gear: 1, gearTimer: 0, gearInterval: 2.8 - raceNum * 0.2,
     x: W * 0.7,
     color: '#2255dd', color2: '#0a2266',
   };
@@ -304,15 +341,12 @@ function createOpponent(raceNum) {
 
 // ---- Shift Zone Calculation ----
 function getZones(p) {
-  // Zone centres at 86% of MAX_RPM
   const center = 0.86;
-  const hw     = 0.052 * p.shiftWindow; // good half-width
-  const phw    = 0.018 * p.shiftWindow; // perfect half-width
+  const hw  = 0.052 * p.shiftWindow;
+  const phw = 0.018 * p.shiftWindow;
   return {
-    goodMin:  center - hw,
-    goodMax:  center + hw,
-    perfMin:  center - phw,
-    perfMax:  center + phw,
+    goodMin: center - hw, goodMax: center + hw,
+    perfMin: center - phw, perfMax: center + phw,
   };
 }
 
@@ -325,31 +359,28 @@ function updatePlayer(dt) {
   if (p.perfectFlash  > 0) p.perfectFlash  -= dt;
   if (p.overrevTimer  > 0) {
     p.overrevTimer -= dt;
-    p.speed = Math.max(0, p.speed - 60 * dt);
+    p.speed = Math.max(0, p.speed - 60*dt);
   }
 
-  // NOS fuel drain
   if (p.nosActive) {
     p.nosFuel -= dt;
     if (p.nosFuel <= 0) { p.nosActive = false; p.nosFuel = 0; }
   }
 
-  const nosBoost   = p.nosActive ? 1.6 : 1.0;
-  const gearRatio  = [0, 3.5, 2.6, 1.9, 1.45, 1.15, 0.92][p.gear] || 1;
-  const rpmRate    = 3200 * p.accel * p.rpmBuild / gearRatio;
+  const nosBoost  = p.nosActive ? 1.6 : 1.0;
+  const gearRatio = [0,3.5,2.6,1.9,1.45,1.15,0.92][p.gear] || 1;
+  const rpmRate   = 3200 * p.accel * p.rpmBuild / gearRatio;
 
   if (p.overrevTimer <= 0) {
     p.rpm = Math.min(MAX_RPM, p.rpm + rpmRate * dt);
   }
 
-  // Target speed for current rpm/gear
   const gearTopSpeed = (p.gear / NUM_GEARS) * 310 * p.topSpeed;
   const rpmFrac      = p.rpm / MAX_RPM;
   const targetSpeed  = rpmFrac * gearTopSpeed;
   p.speed += (targetSpeed - p.speed) * 2.8 * dt * nosBoost;
   p.speed  = Math.max(0, p.speed);
 
-  // Auto overrev protection — if you stay in redline too long without shifting
   if (p.rpm >= MAX_RPM && p.gear < NUM_GEARS && p.shiftCooldown <= 0) {
     p.overrevTimer = 0.35;
     p.speed *= 0.88;
@@ -358,9 +389,7 @@ function updatePlayer(dt) {
 
   p.dist += p.speed * dt;
 
-  // Exhaust particles
   if (frame % 4 === 0) spawnExhaust(p.x, CAR_Y + 20, p.nosActive);
-
   setEngineSound(p.rpm, true);
   if (run.bestSpeed < Math.floor(p.speed)) run.bestSpeed = Math.floor(p.speed);
 }
@@ -374,28 +403,18 @@ function shiftUp() {
 
   if (rpmFrac >= z.perfMin && rpmFrac <= z.perfMax) {
     quality = 'perfect';
-    p.gear++;
-    p.rpm = p.rpm * 0.54 + (p.exhaustBoost ? 300 : 0);
-    p.perfectFlash = 0.55;
-    p.shiftCooldown = 0.18;
+    p.gear++; p.rpm = p.rpm * 0.54 + (p.exhaustBoost ? 300 : 0);
+    p.perfectFlash = 0.55; p.shiftCooldown = 0.18;
     if (p.exhaustBoost) p.speed *= 1.04;
   } else if (rpmFrac >= z.goodMin && rpmFrac <= z.goodMax) {
     quality = 'good';
-    p.gear++;
-    p.rpm = p.rpm * 0.55;
-    p.shiftCooldown = 0.28;
+    p.gear++; p.rpm = p.rpm * 0.55; p.shiftCooldown = 0.28;
   } else if (rpmFrac < z.goodMin) {
     quality = 'early';
-    p.gear++;
-    p.rpm = p.rpm * 0.42;
-    p.speed *= 0.87;
-    p.shiftCooldown = 0.45;
+    p.gear++; p.rpm = p.rpm * 0.42; p.speed *= 0.87; p.shiftCooldown = 0.45;
   } else {
     quality = 'late';
-    p.gear++;
-    p.rpm = MAX_RPM * 0.62;
-    p.speed *= 0.91;
-    p.shiftCooldown = 0.38;
+    p.gear++; p.rpm = MAX_RPM * 0.62; p.speed *= 0.91; p.shiftCooldown = 0.38;
   }
   playShift(quality === 'perfect' ? 'perfect' : quality === 'good' ? 'good' : 'bad');
 }
@@ -414,8 +433,6 @@ function useNOS() {
 function updateOpponent(dt) {
   if (!race || race.state !== 'go') return;
   const o = opponent;
-
-  // Smooth speed curve — slow start, build to max
   const prog = o.dist / RACE_DIST;
   const ramp = prog < 0.08 ? prog * 10 : 1;
   const targetSpeed = ramp * 295 * o.baseSpeed;
@@ -423,7 +440,6 @@ function updateOpponent(dt) {
   o.speed = Math.max(0, o.speed);
   o.dist += o.speed * dt;
 
-  // Visual gear changes
   o.gearTimer += dt;
   if (o.gearTimer >= o.gearInterval) {
     o.gearTimer = 0;
@@ -434,19 +450,20 @@ function updateOpponent(dt) {
 // ---- Game State ----
 let state = 'menu';
 let player, opponent, race, run;
-let raceTimer     = 0;
-let trackOffset   = 0;
-let countdown     = 3;
-let cdTimer       = 0;
-let cdFlash       = 0;
-let raceResult    = null;
-let resultTimer   = 0;
-let upgradeChoices= [];
-let selectedUpg   = 0;
-let modifier      = null;
-let flashMsg      = { text:'', timer:0, color:C.white };
-let frame         = 0;
-const CAR_Y       = Math.floor(H * 0.68);
+let raceTimer       = 0;
+let trackOffset     = 0;
+let countdown       = 3;
+let cdTimer         = 0;
+let cdFlash         = 0;
+let raceResult      = null;
+let resultTimer     = 0;
+let upgradeChoices  = [];
+let selectedUpg     = 0;
+let modifier        = null;
+let flashMsg        = { text:'', timer:0, color:C.white };
+let frame           = 0;
+let preCountdownTimer = 0;
+const CAR_Y         = Math.floor(H * 0.68);
 
 function showFlash(text, color, dur=1.2) {
   flashMsg = { text, color, timer: dur };
@@ -457,7 +474,7 @@ function initRun() {
   player   = createPlayer();
   opponent = createOpponent(1);
   run      = { raceNum:1, lives:3, wins:0, bestSpeed:0 };
-  modifier = MODIFIERS[0]; // clear day
+  modifier = MODIFIERS[0];
   particles = [];
   trackOffset = 0;
 }
@@ -474,9 +491,9 @@ function setupRace() {
   raceTimer = 0;
   race = { state:'countdown', finishPlayer:null, finishOpponent:null };
   countdown = 3; cdTimer = 1; cdFlash = 0;
+  preCountdownTimer = (run.raceNum >= 5) ? 2.8 : 0;
   state = 'countdown';
 
-  // Apply modifier to fresh copies of stats
   if (modifier) modifier.apply(player, opponent);
 }
 
@@ -501,7 +518,6 @@ function pickUpgradeAndContinue(idx) {
   if (run.lives <= 0) { state = 'gameover'; return; }
   if (run.raceNum > 5) { state = 'win'; return; }
 
-  // Pick modifier for next race
   modifier = MODIFIERS[Math.floor(Math.random() * MODIFIERS.length)];
   setupRace();
 }
@@ -528,374 +544,557 @@ function px(text, x, y, size, color, align='left') {
 
 // ---- Track ----
 function drawTrack(offset) {
-  // Asphalt
   ctx.fillStyle = C.asphalt;
-  ctx.fillRect(W * 0.12, 0, W * 0.76, H);
+  ctx.fillRect(W*0.12, 0, W*0.76, H);
 
-  // Surface texture lines
-  ctx.strokeStyle = C.asphalt2;
+  ctx.strokeStyle = C.asph2;
   ctx.lineWidth = 1;
-  for (let y = (-(offset | 0) % 30); y < H; y += 30) {
-    ctx.beginPath();
-    ctx.moveTo(W * 0.12, y);
-    ctx.lineTo(W * 0.88, y);
-    ctx.stroke();
+  for (let y = (-(offset|0)%30); y < H; y += 30) {
+    ctx.beginPath(); ctx.moveTo(W*0.12,y); ctx.lineTo(W*0.88,y); ctx.stroke();
   }
 
-  // Barriers (alternating red/white)
   const segH = 50;
-  for (let y = (-(offset | 0) % (segH * 2)) - segH; y < H + segH; y += segH) {
-    const even = Math.floor((y + offset) / segH) % 2 === 0;
+  for (let y = (-(offset|0)%(segH*2))-segH; y < H+segH; y += segH) {
+    const even = Math.floor((y+offset)/segH)%2===0;
     ctx.fillStyle = even ? '#cc2200' : '#dddddd';
-    ctx.fillRect(W * 0.12 - 9, y | 0, 9, segH);
+    ctx.fillRect(W*0.12-9, y|0, 9, segH);
     ctx.fillStyle = even ? '#dddddd' : '#cc2200';
-    ctx.fillRect(W * 0.88, y | 0, 9, segH);
+    ctx.fillRect(W*0.88, y|0, 9, segH);
   }
 
-  // Lane divider
   ctx.strokeStyle = '#ffffbb';
   ctx.lineWidth = 2;
-  ctx.setLineDash([22, 18]);
-  ctx.lineDashOffset = -(offset | 0);
-  ctx.beginPath();
-  ctx.moveTo(W / 2, 0);
-  ctx.lineTo(W / 2, H);
-  ctx.stroke();
+  ctx.setLineDash([22,18]);
+  ctx.lineDashOffset = -(offset|0);
+  ctx.beginPath(); ctx.moveTo(W/2,0); ctx.lineTo(W/2,H); ctx.stroke();
   ctx.setLineDash([]);
 
-  // Crowd (colourful pixel blocks)
   const cColors = ['#ff6666','#66ff88','#6688ff','#ffee66','#ff88cc','#66eeff'];
   const bh = 18;
-  for (let y = (-(offset | 0) % (bh * 2)) - bh; y < H + bh; y += bh) {
-    const ci = Math.floor((y + offset * 0.4) / bh);
-    ctx.fillStyle = cColors[Math.abs(ci * 7 + 1) % cColors.length];
-    ctx.fillRect(0, y | 0, W * 0.12 - 9, bh - 1);
-    ctx.fillStyle = cColors[Math.abs(ci * 5 + 3) % cColors.length];
-    ctx.fillRect(W * 0.88 + 9, y | 0, W * 0.12 - 9, bh - 1);
+  for (let y = (-(offset|0)%(bh*2))-bh; y < H+bh; y += bh) {
+    const ci = Math.floor((y+offset*0.4)/bh);
+    ctx.fillStyle = cColors[Math.abs(ci*7+1)%cColors.length];
+    ctx.fillRect(0, y|0, W*0.12-9, bh-1);
+    ctx.fillStyle = cColors[Math.abs(ci*5+3)%cColors.length];
+    ctx.fillRect(W*0.88+9, y|0, W*0.12-9, bh-1);
   }
 }
 
 function drawFinishLine(playerDist) {
   const remaining = RACE_DIST - playerDist;
   const sy = CAR_Y - remaining * TRACK_SCALE;
-  if (sy < -20 || sy > H + 20) return;
+  if (sy < -20 || sy > H+20) return;
 
-  const trackLeft  = W * 0.12;
-  const trackRight = W * 0.88;
-  const trackW     = trackRight - trackLeft;
-  const cols = 18, rows = 2, tileW = trackW / cols, tileH = 10;
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      ctx.fillStyle = (c + r) % 2 === 0 ? '#ffffff' : '#000000';
-      ctx.fillRect(
-        Math.floor(trackLeft + c * tileW),
-        Math.floor(sy + r * tileH),
-        Math.ceil(tileW), tileH
-      );
-    }
+  const tl = W*0.12, tr = W*0.88, tw = tr-tl;
+  const cols = 18, rows = 2, tileW = tw/cols, tileH = 10;
+  for (let r=0;r<rows;r++) for (let c=0;c<cols;c++) {
+    ctx.fillStyle = (c+r)%2===0 ? '#ffffff' : '#000000';
+    ctx.fillRect(Math.floor(tl+c*tileW), Math.floor(sy+r*tileH), Math.ceil(tileW), tileH);
   }
-  px('FINISH', W / 2, sy - 4, 11, C.yellow, 'center');
+  px('FINISH', W/2, sy-4, 11, C.yellow, 'center');
 }
 
 // ---- Car ----
 function drawCar(x, y, color, color2, nosActive, flash, speed=0) {
   const cw = 24, ch = 42;
+  const shaking = speed > 140 && frame%2===0;
+  const shakeY = shaking ? (frame%4<2?1:-1) : 0;
+  const shakeX = shaking && speed>220 ? (frame%6<3?1:-1) : 0;
+  const bx = Math.floor(x-cw/2)+shakeX;
+  const by = Math.floor(y-ch/2)+shakeY;
 
-  // Body shake at high speed
-  const shaking = speed > 140 && frame % 2 === 0;
-  const shakeY = shaking ? (frame % 4 < 2 ? 1 : -1) : 0;
-  const shakeX = shaking && speed > 220 ? (frame % 6 < 3 ? 1 : -1) : 0;
-
-  const bx = Math.floor(x - cw / 2) + shakeX;
-  const by = Math.floor(y - ch / 2) + shakeY;
-
-  // Speed trail at high speed
   if (speed > 90) {
-    const trailAlpha = Math.min(0.22, (speed - 90) / 380);
-    ctx.globalAlpha = trailAlpha;
+    const ta = Math.min(0.22,(speed-90)/380);
+    ctx.globalAlpha = ta;
     ctx.fillStyle = color;
-    ctx.fillRect(bx, by - 5, cw, ch);
-    ctx.globalAlpha = trailAlpha * 0.5;
-    ctx.fillRect(bx, by - 9, cw, ch * 0.7);
+    ctx.fillRect(bx, by-5, cw, ch);
+    ctx.globalAlpha = ta*0.5;
+    ctx.fillRect(bx, by-9, cw, ch*0.7);
     ctx.globalAlpha = 1;
   }
 
-  // Shadow
   ctx.fillStyle = 'rgba(0,0,0,0.4)';
-  ctx.fillRect(bx + 3, by + 4, cw, ch);
-
-  // Body
+  ctx.fillRect(bx+3, by+4, cw, ch);
   ctx.fillStyle = color;
   ctx.fillRect(bx, by, cw, ch);
-
-  // Roof stripe
   ctx.fillStyle = color2;
-  ctx.fillRect(bx + 6, by + 7, cw - 12, ch - 14);
-
-  // Front windshield
+  ctx.fillRect(bx+6, by+7, cw-12, ch-14);
   ctx.fillStyle = 'rgba(140,210,255,0.85)';
-  ctx.fillRect(bx + 4, by + 5, cw - 8, 8);
-
-  // Rear window
+  ctx.fillRect(bx+4, by+5, cw-8, 8);
   ctx.fillStyle = 'rgba(140,210,255,0.6)';
-  ctx.fillRect(bx + 4, by + ch - 12, cw - 8, 7);
-
-  // Headlights
+  ctx.fillRect(bx+4, by+ch-12, cw-8, 7);
   ctx.fillStyle = '#fff8aa';
-  ctx.fillRect(bx + 3, by + 2, 5, 3);
-  ctx.fillRect(bx + cw - 8, by + 2, 5, 3);
-
-  // Taillights
+  ctx.fillRect(bx+3, by+2, 5, 3);
+  ctx.fillRect(bx+cw-8, by+2, 5, 3);
   ctx.fillStyle = '#ff2200';
-  ctx.fillRect(bx + 3, by + ch - 4, 5, 3);
-  ctx.fillRect(bx + cw - 8, by + ch - 4, 5, 3);
+  ctx.fillRect(bx+3, by+ch-4, 5, 3);
+  ctx.fillRect(bx+cw-8, by+ch-4, 5, 3);
 
-  // Wheels + spin animation
-  const spinStep = Math.floor(frame * Math.max(0.08, speed * 0.007)) % 4;
+  const spinStep = Math.floor(frame*Math.max(0.08,speed*0.007))%4;
   const spokeH = ['#777','#222','#777','#444'];
   const spokeV = ['#222','#777','#444','#777'];
   function drawWheel(wx, wy) {
-    ctx.fillStyle = '#111';
-    ctx.fillRect(wx, wy, 5, 10);
-    ctx.fillStyle = spokeH[spinStep];
-    ctx.fillRect(wx, wy + 4, 5, 2); // horizontal spoke
-    ctx.fillStyle = spokeV[spinStep];
-    ctx.fillRect(wx + 2, wy, 1, 10); // vertical spoke
+    ctx.fillStyle = '#111'; ctx.fillRect(wx, wy, 5, 10);
+    ctx.fillStyle = spokeH[spinStep]; ctx.fillRect(wx, wy+4, 5, 2);
+    ctx.fillStyle = spokeV[spinStep]; ctx.fillRect(wx+2, wy, 1, 10);
   }
-  drawWheel(bx - 4, by + 5);
-  drawWheel(bx + cw - 1, by + 5);
-  drawWheel(bx - 4, by + ch - 16);
-  drawWheel(bx + cw - 1, by + ch - 16);
+  drawWheel(bx-4, by+5); drawWheel(bx+cw-1, by+5);
+  drawWheel(bx-4, by+ch-16); drawWheel(bx+cw-1, by+ch-16);
 
-  // NOS flame
   if (nosActive) {
     const fc = ['#ff6600','#ffaa00','#ffff00'];
-    for (let i = 0; i < 5; i++) {
-      ctx.fillStyle = fc[(i + Math.floor(frame / 2)) % fc.length];
-      ctx.fillRect(bx + 3 + i * 4, by + ch + i * 2, 4, 10 - i * 1.5);
+    for (let i=0;i<5;i++) {
+      ctx.fillStyle = fc[(i+Math.floor(frame/2))%fc.length];
+      ctx.fillRect(bx+3+i*4, by+ch+i*2, 4, 10-i*1.5);
     }
   }
-
-  // Perfect shift glow
-  if (flash > 0 && Math.floor(Date.now() / 80) % 2 === 0) {
-    ctx.strokeStyle = C.neon;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(bx - 3, by - 3, cw + 6, ch + 6);
+  if (flash > 0 && Math.floor(Date.now()/80)%2===0) {
+    ctx.strokeStyle = C.neon; ctx.lineWidth = 2;
+    ctx.strokeRect(bx-3, by-3, cw+6, ch+6);
   }
 }
 
 // ---- RPM Gauge ----
 function drawRPMGauge() {
   const p = player;
-  const gx = 16, gy = H - 90, gw = 170, gh = 22;
+  const gx=16, gy=H-90, gw=170, gh=22;
 
-  px('RPM', gx, gy - 6, 11, '#aaa');
-
+  px('RPM', gx, gy-6, 11, '#aaa');
   ctx.fillStyle = '#0a0a12';
   ctx.fillRect(gx, gy, gw, gh);
 
-  // RPM fill
   const rf = p.rpm / MAX_RPM;
   let rc = C.neon;
   if (rf > 0.93) rc = C.red;
   else if (rf > 0.82) rc = '#ffaa00';
   ctx.fillStyle = rc;
-  ctx.fillRect(gx, gy, gw * rf, gh);
+  ctx.fillRect(gx, gy, gw*rf, gh);
 
-  // Zone overlays
   const z = getZones(p);
   ctx.fillStyle = 'rgba(255,200,0,0.45)';
-  ctx.fillRect(gx + gw * z.goodMin, gy, gw * (z.goodMax - z.goodMin), gh);
+  ctx.fillRect(gx+gw*z.goodMin, gy, gw*(z.goodMax-z.goodMin), gh);
   ctx.fillStyle = 'rgba(57,255,20,0.7)';
-  ctx.fillRect(gx + gw * z.perfMin, gy, gw * (z.perfMax - z.perfMin), gh);
+  ctx.fillRect(gx+gw*z.perfMin, gy, gw*(z.perfMax-z.perfMin), gh);
 
-  ctx.strokeStyle = '#444';
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = '#444'; ctx.lineWidth = 1;
   ctx.strokeRect(gx, gy, gw, gh);
-
-  // Redline marker
   ctx.fillStyle = C.red;
-  ctx.fillRect(gx + gw * 0.955, gy, 2, gh);
+  ctx.fillRect(gx+gw*0.955, gy, 2, gh);
 
-  // Gear box
-  const gbx = gx + gw + 8;
-  ctx.fillStyle = '#0a0a12';
-  ctx.fillRect(gbx, gy - 3, 34, gh + 6);
-  ctx.strokeStyle = p.gear === NUM_GEARS ? C.yellow : '#444';
-  ctx.strokeRect(gbx, gy - 3, 34, gh + 6);
-  px(`G${p.gear}`, gbx + 17, gy + gh - 2, 17, p.gear === NUM_GEARS ? C.yellow : C.white, 'center');
+  const gbx = gx+gw+8;
+  ctx.fillStyle = '#0a0a12'; ctx.fillRect(gbx, gy-3, 34, gh+6);
+  ctx.strokeStyle = p.gear===NUM_GEARS ? C.yellow : '#444';
+  ctx.strokeRect(gbx, gy-3, 34, gh+6);
+  px(`G${p.gear}`, gbx+17, gy+gh-2, 17, p.gear===NUM_GEARS?C.yellow:C.white, 'center');
 
-  // Speed
-  px(`${Math.floor(p.speed)} MPH`, gx, gy + gh + 16, 12, C.cyan);
+  px(`${Math.floor(p.speed)} MPH`, gx, gy+gh+16, 12, C.cyan);
 
-  // SHIFT prompt (blink when in zone)
   const rpmFrac = p.rpm / MAX_RPM;
   if (rpmFrac >= z.goodMin && rpmFrac <= z.goodMax && p.gear < NUM_GEARS) {
-    if (Math.floor(Date.now() / 120) % 2 === 0) {
+    if (Math.floor(Date.now()/120)%2===0) {
       const isPerfect = rpmFrac >= z.perfMin && rpmFrac <= z.perfMax;
-      px('SHIFT!', gx + gw / 2, gy - 18, isPerfect ? 15 : 12,
-         isPerfect ? C.neon : C.yellow, 'center');
+      px('SHIFT!', gx+gw/2, gy-18, isPerfect?15:12, isPerfect?C.neon:C.yellow, 'center');
     }
   }
 
-  // NOS gauge
   if (p.nosCharges > 0 || p.nosFuel > 0 || p.nosActive) {
-    const nx = gx + gw + 50, nw = 50;
-    px('NOS', nx, gy - 6, 11, C.orange);
-    ctx.fillStyle = '#0a0a12';
-    ctx.fillRect(nx, gy, nw, gh);
+    const nx=gx+gw+50, nw=50;
+    px('NOS', nx, gy-6, 11, C.orange);
+    ctx.fillStyle = '#0a0a12'; ctx.fillRect(nx, gy, nw, gh);
     ctx.fillStyle = p.nosActive ? '#ff4400' : '#882200';
-    const nf = p.nosActive ? (p.nosFuel / 2.6) : (p.nosCharges > 0 ? 1 : 0);
-    ctx.fillRect(nx, gy, nw * nf, gh);
-    if (p.nosActive) {
-      if (Math.floor(Date.now() / 100) % 2 === 0) {
-        ctx.fillStyle = '#ffaa00';
-        ctx.fillRect(nx, gy, nw, gh);
-      }
+    const nf = p.nosActive ? (p.nosFuel/2.6) : (p.nosCharges>0?1:0);
+    ctx.fillRect(nx, gy, nw*nf, gh);
+    if (p.nosActive && Math.floor(Date.now()/100)%2===0) {
+      ctx.fillStyle = '#ffaa00'; ctx.fillRect(nx, gy, nw, gh);
     }
-    ctx.strokeStyle = '#444';
-    ctx.strokeRect(nx, gy, nw, gh);
-    if (p.nosCharges > 0) px(`×${p.nosCharges}`, nx + nw + 4, gy + gh - 2, 12, C.orange);
+    ctx.strokeStyle = '#444'; ctx.strokeRect(nx, gy, nw, gh);
+    if (p.nosCharges > 0) px(`×${p.nosCharges}`, nx+nw+4, gy+gh-2, 12, C.orange);
   }
 }
 
 // ---- HUD ----
 function drawHUD() {
-  const p = player;
-  const o = opponent;
-  const pp = Math.min(1, p.dist / RACE_DIST);
-  const op = Math.min(1, o.dist / RACE_DIST);
+  const p = player, o = opponent;
+  const pp = Math.min(1, p.dist/RACE_DIST);
+  const op = Math.min(1, o.dist/RACE_DIST);
 
   ctx.fillStyle = 'rgba(0,0,0,0.75)';
   ctx.fillRect(0, 0, W, 52);
 
-  const bx = 56, bw = W - 112, by1 = 10, by2 = 30, bh = 14;
+  const bx=56, bw=W-112, by1=10, by2=30, bh=14;
+  ctx.fillStyle='#111'; ctx.fillRect(bx,by1,bw,bh); ctx.fillRect(bx,by2,bw,bh);
+  ctx.fillStyle=C.red;  ctx.fillRect(bx,by1,bw*pp,bh);
+  ctx.fillStyle=C.blue; ctx.fillRect(bx,by2,bw*op,bh);
 
-  ctx.fillStyle = '#111';
-  ctx.fillRect(bx, by1, bw, bh);
-  ctx.fillRect(bx, by2, bw, bh);
+  px('YOU', bx-4, by1+bh-1, 10, C.red, 'right');
+  const oppLabel = o.isKing ? 'KING' : 'CPU';
+  const oppColor = o.isKing ? C.red : C.blue;
+  px(oppLabel, bx-4, by2+bh-1, 10, oppColor, 'right');
 
-  ctx.fillStyle = C.red;
-  ctx.fillRect(bx, by1, bw * pp, bh);
-  ctx.fillStyle = C.blue;
-  ctx.fillRect(bx, by2, bw * op, bh);
+  ctx.fillStyle = '#fff'; ctx.fillRect(bx+bw, by1, 3, bh*2+16);
 
-  px('YOU', bx - 4, by1 + bh - 1, 10, C.red, 'right');
-  px('CPU', bx - 4, by2 + bh - 1, 10, C.blue, 'right');
-
-  // Finish flag pole
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(bx + bw, by1, 3, bh * 2 + 16);
-
-  // Timer
-  if (race && race.state === 'go') {
-    px(raceTimer.toFixed(2) + 's', W - 8, 48, 12, C.yellow, 'right');
+  if (race && race.state==='go') {
+    px(raceTimer.toFixed(2)+'s', W-8, 48, 12, C.yellow, 'right');
   }
 
-  px(`RACE ${run.raceNum}/5`, 8, 20, 12, C.white);
+  const raceLabel = run.raceNum === 5 ? 'FINAL RACE' : `RACE ${run.raceNum}/5`;
+  const raceCol   = run.raceNum === 5 ? C.red : C.white;
+  px(raceLabel, 8, 20, 11, raceCol);
   px('♥'.repeat(run.lives), 8, 38, 13, C.red);
 
   if (modifier && modifier.id !== 'none') {
-    px(modifier.name, W / 2, 48, 10, modifier.color, 'center');
+    px(modifier.name, W/2, 48, 10, modifier.color, 'center');
   }
 }
 
 // ---- Speed Lines ----
 function drawSpeedLines(speed) {
   if (speed < 90) return;
-  const alpha = Math.min(0.28, (speed - 90) / 300);
+  const alpha = Math.min(0.28,(speed-90)/300);
   ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
   ctx.lineWidth = 1;
-  for (let i = 0; i < 18; i++) {
-    const x = ((i * 71 + 40) % (W - 80)) + 40;
-    const yo = ((frame * 9 + i * 233) % (H + 60)) - 30;
-    const len = 15 + (i * 19 % 35);
-    ctx.beginPath();
-    ctx.moveTo(x, yo);
-    ctx.lineTo(x, yo + len);
-    ctx.stroke();
+  for (let i=0;i<18;i++) {
+    const x = ((i*71+40)%(W-80))+40;
+    const yo = ((frame*9+i*233)%(H+60))-30;
+    const len = 15+(i*19%35);
+    ctx.beginPath(); ctx.moveTo(x,yo); ctx.lineTo(x,yo+len); ctx.stroke();
   }
 }
 
-// ---- Screens ----
+// ---- SCREENS ----
+
+// ---- Menu ----
 function drawMenu() {
   ctx.fillStyle = C.bg;
   ctx.fillRect(0, 0, W, H);
-
-  // Background scrolling track
-  drawTrack((frame * 1.8) % 300);
-
+  drawTrack((frame*1.8)%300);
   ctx.fillStyle = 'rgba(0,0,0,0.62)';
   ctx.fillRect(0, 0, W, H);
 
-  // Animated cars on track
-  const bounce = Math.sin(frame * 0.04) * 3;
-  drawCar(W * 0.3, H - 100 + bounce, '#e03020', '#881a10', false, 0);
-  drawCar(W * 0.7, H - 100 - bounce, '#2255dd', '#0a2266', false, 0);
+  // Newspaper masthead banner at top
+  ctx.fillStyle = C.paper;
+  ctx.fillRect(0, 0, W, 64);
+  ctx.fillStyle = C.ink;
+  ctx.fillRect(0, 0, W, 3);
+  ctx.fillRect(0, 61, W, 3);
+  ctx.fillRect(0, 10, W, 1);
+  ctx.fillRect(0, 54, W, 1);
+
+  ctx.fillStyle = C.ink;
+  ctx.font = 'bold 7px monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText('EST. 1969', 8, 21);
+  ctx.textAlign = 'right';
+  ctx.fillText('STREET RACING SINCE \'69', W-8, 21);
+  ctx.font = 'bold 17px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('THE NO PREP GAZETTE', W/2, 43);
+  ctx.font = '8px monospace';
+  ctx.fillText('─── CLASSIFIEDS · DRAG RACING ───', W/2, 57);
+
+  // Animated cars
+  const bounce = Math.sin(frame*0.04)*3;
+  drawCar(W*0.3, H-100+bounce, '#e03020', '#881a10', false, 0);
+  drawCar(W*0.7, H-100-bounce, '#2255dd', '#0a2266', false, 0);
 
   // Title
-  px('NO', W / 2, 118, 72, C.red, 'center');
-  px('PREP', W / 2, 192, 72, C.yellow, 'center');
+  px('NO',   W/2, 138, 72, C.red, 'center');
+  px('PREP', W/2, 210, 72, C.yellow, 'center');
 
   ctx.font = 'bold 12px monospace';
   ctx.textAlign = 'center';
   ctx.fillStyle = C.cyan;
-  ctx.fillText('8-BIT ROGUELIKE DRAG RACING', W / 2, 220);
+  ctx.fillText('8-BIT ROGUELIKE DRAG RACING', W/2, 238);
   ctx.fillStyle = '#555';
   ctx.font = 'bold 10px monospace';
-  ctx.fillText('v.0001', W / 2, 238);
+  ctx.fillText('v.0002', W/2, 255);
 
-  if (Math.floor(frame / 28) % 2 === 0) {
-    px('PRESS SPACE TO RACE', W / 2, 262, 14, C.white, 'center');
+  if (Math.floor(frame/28)%2===0) {
+    px('PRESS SPACE TO BROWSE CARS', W/2, 278, 13, C.white, 'center');
   }
 
   // Controls box
   ctx.fillStyle = 'rgba(0,0,0,0.72)';
-  ctx.fillRect(30, 285, W - 60, 190);
-  ctx.strokeStyle = '#334';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(30, 285, W - 60, 190);
+  ctx.fillRect(30, 300, W-60, 186);
+  ctx.strokeStyle = '#334'; ctx.lineWidth = 1;
+  ctx.strokeRect(30, 300, W-60, 186);
 
-  px('CONTROLS', W / 2, 308, 13, C.yellow, 'center');
+  px('CONTROLS', W/2, 323, 13, C.yellow, 'center');
   const ctrls = [
     ['SPACE', 'SHIFT GEAR UP'],
     ['N',     'ACTIVATE NOS (NITRO)'],
     ['ENTER', 'CONFIRM / SELECT'],
-    ['↑ / ↓', 'SELECT UPGRADE'],
+    ['↑ / ↓', 'SELECT UPGRADE / CAR'],
   ];
-  ctrls.forEach(([k, d], i) => {
-    px(k, 70,      332 + i * 26, 12, C.cyan);
-    px(d, 165,     332 + i * 26, 12, C.white);
+  ctrls.forEach(([k,d],i) => {
+    px(k, 70,  347+i*26, 12, C.cyan);
+    px(d, 165, 347+i*26, 12, C.white);
   });
 
-  px('HIT GREEN ZONE FOR PERFECT SHIFT!', W / 2, 452, 10, '#777', 'center');
-  px('WIN 5 RACES TO COMPLETE A RUN', W / 2, 468, 10, '#777', 'center');
+  px('WIN 5 RACES · DEFEAT THE KING!', W/2, 472, 10, '#777', 'center');
 }
 
-function drawCountdownScreen(dt) {
+// ---- Car Select (Newspaper Classifieds) ----
+function drawCarSelect() {
+  const PAD=10, PW=W-PAD*2, PH=H-PAD*2, PX=PAD, PY=PAD;
+
+  ctx.fillStyle = '#0a0806';
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = C.paper;
+  ctx.fillRect(PX, PY, PW, PH);
+  ctx.strokeStyle = C.ink;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(PX, PY, PW, PH);
+
+  // Masthead
+  const MH = 44;
+  ctx.fillStyle = C.ink;
+  ctx.fillRect(PX, PY, PW, MH);
+  ctx.fillStyle = C.paper;
+  ctx.font = 'bold 7px monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText('EST. 1969', PX+6, PY+13);
+  ctx.textAlign = 'right';
+  ctx.fillText('STREET RACING', PX+PW-6, PY+13);
+  ctx.font = 'bold 14px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('NO PREP GAZETTE', W/2, PY+31);
+  ctx.fillStyle = '#c8b090';
+  ctx.font = '7px monospace';
+  ctx.fillText('────── CLASSIFIED ADS ──────', W/2, PY+41);
+
+  // Sub-header
+  ctx.fillStyle = C.ink;
+  ctx.font = 'bold 9px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('CARS FOR SALE — PICK YOUR RIDE', W/2, PY+MH+12);
+  ctx.fillStyle = '#9a8060';
+  ctx.fillRect(PX+4, PY+MH+15, PW-8, 1);
+
+  const CY  = PY + MH + 19;
+  const CH  = PH - MH - 19 - 28;
+  const DIV = PX + 158;
+
+  // Column divider
+  ctx.fillStyle = '#9a8060';
+  ctx.fillRect(DIV, CY, 1, CH);
+
+  // ---- LEFT COLUMN ----
+  const LX = PX+4, LW = DIV-PX-8;
+  const ROW_H = Math.floor(CH / CARS_VISIBLE);
+  const scrollStart = Math.max(0, Math.min(carSelectIdx-Math.floor(CARS_VISIBLE/2), CARS.length-CARS_VISIBLE));
+
+  for (let i=0; i<CARS_VISIBLE; i++) {
+    const idx = scrollStart + i;
+    if (idx >= CARS.length) break;
+    const c = CARS[idx];
+    const ry = CY + i*ROW_H;
+    const sel = idx === carSelectIdx;
+
+    if (sel) {
+      ctx.fillStyle = C.ink;
+      ctx.fillRect(LX-2, ry, LW+4, ROW_H-1);
+    }
+
+    const tc = sel ? C.paper : C.ink;
+    ctx.font = `bold ${sel?9:8}px monospace`;
+    ctx.textAlign = 'left';
+    ctx.fillStyle = tc;
+    ctx.fillText(`'${String(c.year).slice(-2)} ${c.make.slice(0,5)} ${c.model.slice(0,8)}`, LX+2, ry+11);
+    ctx.font = '8px monospace';
+    ctx.textAlign = 'right';
+    ctx.fillStyle = tc;
+    ctx.fillText(`$${c.price}`, DIV-5, ry+11);
+
+    // Mini 3-bar stats
+    const bY = ry+17, bTW = LW-6;
+    ['speed','accel','handling'].forEach((stat,si) => {
+      const bx = LX + si*(bTW/3+1), bw = bTW/3-1;
+      ctx.fillStyle = sel ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.12)';
+      ctx.fillRect(bx, bY, bw, 4);
+      ctx.fillStyle = sel ? C.paper : ['#cc3300','#3377ff','#009944'][si];
+      ctx.fillRect(bx, bY, bw*(c[stat]/10), 4);
+    });
+
+    if (!sel) {
+      ctx.fillStyle = '#c8b090';
+      ctx.fillRect(LX, ry+ROW_H-1, LW, 1);
+    }
+  }
+
+  // Scroll arrows
+  if (scrollStart > 0) {
+    ctx.fillStyle = C.ink; ctx.font='bold 9px monospace'; ctx.textAlign='center';
+    ctx.fillText('▲', LX+LW/2, CY-2);
+  }
+  if (scrollStart+CARS_VISIBLE < CARS.length) {
+    ctx.fillStyle = C.ink; ctx.font='bold 9px monospace'; ctx.textAlign='center';
+    ctx.fillText('▼', LX+LW/2, CY+CH+10);
+  }
+
+  // ---- RIGHT COLUMN: Selected car detail ----
+  const c = CARS[carSelectIdx];
+  const RX = DIV+6, RW = PX+PW-DIV-10;
+
+  ctx.fillStyle = C.ink;
+  ctx.font = 'bold 9px monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText(`${c.year} ${c.make}`, RX, CY+11);
+  ctx.font = 'bold 13px monospace';
+  ctx.fillText(c.model, RX, CY+25);
+
+  ctx.font = 'bold 18px monospace';
+  ctx.fillStyle = '#3a1800';
+  ctx.fillText(`$${c.price}`, RX, CY+48);
+
+  ctx.fillStyle = '#b0a080';
+  ctx.fillRect(RX, CY+52, RW, 1);
+
+  // Description
+  ctx.font = '8px monospace';
+  ctx.fillStyle = '#4a3000';
+  ctx.textAlign = 'left';
+  const words = c.desc.split(' ');
+  let line='', lineY = CY+65;
+  words.forEach(w => {
+    const test = line+(line?' ':'')+w;
+    if (ctx.measureText(test).width > RW-2) {
+      ctx.fillText(line, RX, lineY); lineY+=11; line=w;
+    } else line=test;
+  });
+  if (line) { ctx.fillText(line, RX, lineY); lineY+=11; }
+
+  lineY += 4;
+  ctx.fillStyle = '#b0a080';
+  ctx.fillRect(RX, lineY, RW, 1);
+  lineY += 9;
+
+  // Stat bars
+  function statBar(label, val, y) {
+    ctx.font = 'bold 8px monospace';
+    ctx.fillStyle = C.ink; ctx.textAlign = 'left';
+    ctx.fillText(label, RX, y);
+    const bx=RX+28, bw=RW-40, bh=8;
+    ctx.fillStyle = '#d5c9a8'; ctx.fillRect(bx, y-8, bw, bh);
+    const pct = val/10;
+    ctx.fillStyle = pct>=0.8?'#1a6a00' : pct>=0.5?'#aa5500' : '#880000';
+    ctx.fillRect(bx, y-8, bw*pct, bh);
+    ctx.font = '8px monospace'; ctx.textAlign='right'; ctx.fillStyle=C.ink;
+    ctx.fillText(`${val}`, RX+RW, y);
+  }
+
+  statBar('SPD', c.speed,    lineY); lineY+=15;
+  statBar('ACC', c.accel,    lineY); lineY+=15;
+  statBar('HND', c.handling, lineY); lineY+=15;
+
+  // Flavor tag
+  const mx = Math.max(c.speed, c.accel, c.handling);
+  let flavor = 'ALL-AROUND';
+  if (mx===c.speed    && c.speed    >= 8) flavor = 'TOP END SPEED';
+  if (mx===c.accel    && c.accel    >= 8) flavor = 'GREAT LAUNCH';
+  if (mx===c.handling && c.handling >= 8) flavor = 'EASY TO SHIFT';
+  ctx.font = '7px monospace'; ctx.fillStyle = '#885500'; ctx.textAlign='left';
+  ctx.fillText(`★ ${flavor}`, RX, lineY+4);
+
+  // THE KING teaser (bottom of right col)
+  const teaserY = PY+PH-56;
+  ctx.fillStyle = '#c8b090';
+  ctx.fillRect(RX, teaserY, RW, 1);
+  ctx.font = '7px monospace'; ctx.fillStyle='#7a3a00'; ctx.textAlign='left';
+  ctx.fillText('WIN ALL 5 TO FACE:', RX, teaserY+11);
+  ctx.font = 'bold 9px monospace'; ctx.fillStyle='#aa2200';
+  ctx.fillText('THE KING', RX, teaserY+23);
+  ctx.font = '7px monospace'; ctx.fillStyle='#664400';
+  ctx.fillText("'69 SHELBY GT500", RX, teaserY+34);
+
+  // Bottom bar
+  const BB = PY+PH-24;
+  ctx.fillStyle = C.ink;
+  ctx.fillRect(PX, BB, PW, 24);
+  if (Math.floor(frame/25)%2===0) {
+    ctx.fillStyle = C.paper; ctx.font='bold 10px monospace'; ctx.textAlign='center';
+    ctx.fillText('↑↓ SCROLL    SPACE / ENTER: SELECT', W/2, BB+16);
+  }
+}
+
+// ---- Boss Intro Overlay ----
+function drawBossIntroOverlay() {
+  drawTrack(trackOffset);
+  ctx.fillStyle = 'rgba(0,0,0,0.90)';
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.strokeStyle = C.red; ctx.lineWidth = 2;
+  ctx.strokeRect(14, 44, W-28, H-88);
+  ctx.strokeStyle = '#550000'; ctx.lineWidth = 1;
+  ctx.strokeRect(18, 48, W-36, H-96);
+
+  px('RACE 5 — FINAL SHOWDOWN', W/2, 84, 12, C.yellow, 'center');
+
+  ctx.fillStyle = '#330000';
+  ctx.fillRect(14, 90, W-28, 2);
+
+  // Pulsing THE KING title
+  const pulse = 1 + Math.sin(Date.now()/200)*0.06;
+  ctx.save();
+  ctx.translate(W/2, H/2-40);
+  ctx.scale(pulse, pulse);
+  px('THE', 0, -26, 40, '#cc1100', 'center');
+  px('KING', 0, 22,  58, C.red, 'center');
+  ctx.restore();
+
+  px('1969 SHELBY GT500', W/2, H/2+46, 13, C.white, 'center');
+
+  // King stat bars
+  const bsx=110, bsw=W-220;
+  function kingBar(label, y) {
+    ctx.font='bold 9px monospace'; ctx.fillStyle='#aaa'; ctx.textAlign='right';
+    ctx.fillText(label, bsx-4, y);
+    ctx.fillStyle='#1a0000'; ctx.fillRect(bsx, y-8, bsw, 8);
+    ctx.fillStyle = C.red;   ctx.fillRect(bsx, y-8, bsw, 8);
+    if (Math.floor(Date.now()/180)%2===0) {
+      ctx.fillStyle='rgba(255,120,60,0.5)'; ctx.fillRect(bsx, y-8, bsw, 4);
+    }
+    ctx.font='bold 9px monospace'; ctx.fillStyle='#ff6666'; ctx.textAlign='left';
+    ctx.fillText('10', bsx+bsw+4, y);
+  }
+  kingBar('SPEED',   H/2+78);
+  kingBar('ACCEL',   H/2+95);
+  kingBar('HANDLE',  H/2+112);
+
+  // Draw King's car silhouette
+  drawCar(W/2, H/2+160, '#0d0800', '#c8a000', false, 0, 0);
+
+  px('Good luck out there...', W/2, H-66, 11, '#555', 'center');
+  if (Math.floor(frame/30)%2===0) {
+    px('PRESS ANY KEY TO SKIP', W/2, H-50, 9, '#333', 'center');
+  }
+}
+
+function drawCountdownScreen() {
   drawTrack(trackOffset);
   drawFinishLine(player.dist);
   drawCar(player.x, CAR_Y, player.color, player.color2, false, 0);
   drawCar(opponent.x, CAR_Y, opponent.color, opponent.color2, false, 0);
+  if (opponent.isKing && Math.floor(frame/20)%2===0) {
+    px('"THE KING"', opponent.x, CAR_Y-46, 9, C.red, 'center');
+  }
   drawHUD();
 
-  ctx.fillStyle = 'rgba(0,0,0,0.52)';
-  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle='rgba(0,0,0,0.52)'; ctx.fillRect(0,0,W,H);
 
   if (countdown > 0) {
-    const scale = 1 + (1 - Math.min(1, cdFlash)) * 1.6;
+    const scale = 1+(1-Math.min(1,cdFlash))*1.6;
     ctx.save();
-    ctx.translate(W / 2, H / 2 - 20);
-    ctx.scale(scale, scale);
+    ctx.translate(W/2, H/2-20); ctx.scale(scale,scale);
     px(countdown.toString(), 0, 30, 88, C.yellow, 'center');
     ctx.restore();
   } else {
-    px('GO!', W / 2, H / 2 + 20, 72, C.neon, 'center');
+    px('GO!', W/2, H/2+20, 72, C.neon, 'center');
   }
 
-  if (modifier && modifier.id !== 'none') {
-    px(modifier.name, W / 2, H / 2 + 80, 16, modifier.color, 'center');
-    px(modifier.desc, W / 2, H / 2 + 104, 12, '#aaa', 'center');
+  if (modifier && modifier.id!=='none') {
+    px(modifier.name, W/2, H/2+80, 16, modifier.color, 'center');
+    px(modifier.desc, W/2, H/2+104, 12, '#aaa', 'center');
   }
 }
 
@@ -905,143 +1104,143 @@ function drawRaceScreen() {
   drawFinishLine(player.dist);
   drawParticles();
   drawCar(opponent.x, CAR_Y, opponent.color, opponent.color2, false, 0, opponent.speed);
+
+  // King label above opponent car
+  if (opponent.isKing) {
+    if (Math.floor(frame/22)%2===0) {
+      px('"THE KING"', opponent.x, CAR_Y-50, 9, C.red, 'center');
+    }
+    px('GT500', opponent.x, CAR_Y-38, 8, '#aa3300', 'center');
+  }
+
   drawCar(player.x, CAR_Y, player.color, player.color2, player.nosActive, player.perfectFlash, player.speed);
   drawRPMGauge();
   drawHUD();
 
   if (player.perfectFlash > 0) {
-    ctx.fillStyle = `rgba(57,255,20,${player.perfectFlash * 0.25})`;
-    ctx.fillRect(0, 0, W, H);
-    if (Math.floor(Date.now() / 90) % 2 === 0)
-      px('PERFECT!', W / 2, H / 2 - 60, 28, C.neon, 'center');
+    ctx.fillStyle = `rgba(57,255,20,${player.perfectFlash*0.25})`;
+    ctx.fillRect(0,0,W,H);
+    if (Math.floor(Date.now()/90)%2===0)
+      px('PERFECT!', W/2, H/2-60, 28, C.neon, 'center');
   }
-
-  if (player.overrevTimer > 0 && Math.floor(frame / 5) % 2 === 0) {
-    px('OVERREV!', W / 2, H * 0.45, 22, C.red, 'center');
+  if (player.overrevTimer > 0 && Math.floor(frame/5)%2===0) {
+    px('OVERREV!', W/2, H*0.45, 22, C.red, 'center');
   }
-
   if (flashMsg.timer > 0) {
-    flashMsg.timer -= 0; // updated in loop
-    px(flashMsg.text, W / 2, H / 2 - 20, 26, flashMsg.color, 'center');
+    px(flashMsg.text, W/2, H/2-20, 26, flashMsg.color, 'center');
   }
 }
 
 function drawResultScreen() {
-  ctx.fillStyle = C.bg;
-  ctx.fillRect(0, 0, W, H);
-  drawTrack((frame * 0.5) % 200);
-  ctx.fillStyle = 'rgba(0,0,0,0.6)';
-  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = C.bg; ctx.fillRect(0,0,W,H);
+  drawTrack((frame*0.5)%200);
+  ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(0,0,W,H);
 
-  const won = raceResult === 'win';
-  px(won ? 'RACE WON!' : 'RACE LOST!', W / 2, H / 2 - 30, 30, won ? C.neon : C.red, 'center');
-  px(`TIME: ${raceTimer.toFixed(2)}s`, W / 2, H / 2 + 10, 16, C.white, 'center');
-  px(`TOP SPEED: ${run.bestSpeed} MPH`, W / 2, H / 2 + 36, 14, C.cyan, 'center');
-  if (!won) px(`LIVES: ${'♥'.repeat(run.lives)}`, W / 2, H / 2 + 58, 14, C.red, 'center');
+  const won = raceResult==='win';
+  px(won?'RACE WON!':'RACE LOST!', W/2, H/2-30, 30, won?C.neon:C.red, 'center');
+  px(`TIME: ${raceTimer.toFixed(2)}s`, W/2, H/2+10, 16, C.white, 'center');
+  px(`TOP SPEED: ${run.bestSpeed} MPH`, W/2, H/2+36, 14, C.cyan, 'center');
+  if (!won) px(`LIVES: ${'♥'.repeat(run.lives)}`, W/2, H/2+58, 14, C.red, 'center');
 }
 
 function drawUpgradeScreen() {
-  ctx.fillStyle = '#050510';
-  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle='#050510'; ctx.fillRect(0,0,W,H);
 
-  // Stars
-  for (let i = 0; i < 60; i++) {
-    const sx = (i * 131 + 20) % W;
-    const sy = (i * 223 + 10) % H;
-    const bright = Math.floor(frame / 12 + i) % 2 === 0;
-    ctx.fillStyle = bright ? '#ffffff' : '#888888';
-    ctx.fillRect(sx, sy, 1, 1);
+  for (let i=0;i<60;i++) {
+    const sx=(i*131+20)%W, sy=(i*223+10)%H;
+    const bright = Math.floor(frame/12+i)%2===0;
+    ctx.fillStyle = bright?'#ffffff':'#888888';
+    ctx.fillRect(sx,sy,1,1);
   }
 
-  const won = raceResult === 'win';
-  px(won ? '✓ RACE COMPLETE' : '✗ RACE LOST', W / 2, 34, 14, won ? C.neon : C.red, 'center');
-  px('CHOOSE UPGRADE', W / 2, 58, 18, C.yellow, 'center');
+  const won = raceResult==='win';
+  px(won?'✓ RACE COMPLETE':'✗ RACE LOST', W/2, 34, 14, won?C.neon:C.red, 'center');
+  px('CHOOSE UPGRADE', W/2, 58, 18, C.yellow, 'center');
 
   if (run.raceNum < 5) {
-    // Show modifier for next race
-    px(`NEXT: ${modifier.name}`, W / 2, 78, 11, modifier.color, 'center');
+    px(`NEXT: ${modifier.name}`, W/2, 78, 11, modifier.color, 'center');
+  } else {
+    px('NEXT: THE KING', W/2, 78, 11, C.red, 'center');
   }
 
-  upgradeChoices.forEach((upg, i) => {
-    const ux = 24, uy = 96 + i * 130, uw = W - 48, uh = 112;
-    const sel = i === selectedUpg;
-
-    ctx.fillStyle = sel ? '#0d0d28' : '#080818';
-    ctx.fillRect(ux, uy, uw, uh);
-    ctx.strokeStyle = sel ? upg.color : '#2a2a44';
-    ctx.lineWidth = sel ? 2 : 1;
-    ctx.strokeRect(ux, uy, uw, uh);
-
+  upgradeChoices.forEach((upg,i) => {
+    const ux=24, uy=96+i*130, uw=W-48, uh=112, sel=i===selectedUpg;
+    ctx.fillStyle = sel?'#0d0d28':'#080818';
+    ctx.fillRect(ux,uy,uw,uh);
+    ctx.strokeStyle = sel?upg.color:'#2a2a44'; ctx.lineWidth=sel?2:1;
+    ctx.strokeRect(ux,uy,uw,uh);
     if (sel) {
-      ctx.fillStyle = upg.color + '22';
-      ctx.fillRect(ux, uy, uw, uh);
-      px('▶', ux - 16, uy + 64, 14, upg.color);
+      ctx.fillStyle=upg.color+'22'; ctx.fillRect(ux,uy,uw,uh);
+      px('▶', ux-16, uy+64, 14, upg.color);
     }
-
-    px(upg.name, ux + 14, uy + 34, 15, sel ? upg.color : C.white);
-    px(upg.desc, ux + 14, uy + 58, 12, '#88aacc');
-
-    // Tiny upgrade icons
-    ctx.fillStyle = upg.color;
-    ctx.fillRect(ux + 14, uy + 72, 6, 6);
-    ctx.fillRect(ux + 24, uy + 72, 6, 6);
-    ctx.fillRect(ux + 34, uy + 72, 6, 6);
+    px(upg.name, ux+14, uy+34, 15, sel?upg.color:C.white);
+    px(upg.desc, ux+14, uy+58, 12, '#88aacc');
+    ctx.fillStyle=upg.color;
+    ctx.fillRect(ux+14,uy+72,6,6); ctx.fillRect(ux+24,uy+72,6,6); ctx.fillRect(ux+34,uy+72,6,6);
   });
 
-  if (Math.floor(frame / 30) % 2 === 0)
-    px('↑↓ SELECT   ENTER/SPACE CONFIRM', W / 2, H - 14, 10, '#555', 'center');
+  if (Math.floor(frame/30)%2===0)
+    px('↑↓ SELECT   ENTER/SPACE CONFIRM', W/2, H-14, 10, '#555', 'center');
 }
 
 function drawGameOver() {
-  ctx.fillStyle = '#0a0000';
-  ctx.fillRect(0, 0, W, H);
-
-  if (Math.floor(frame / 12) % 2 === 0) {
-    ctx.fillStyle = 'rgba(255,0,0,0.07)';
-    ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle='#0a0000'; ctx.fillRect(0,0,W,H);
+  if (Math.floor(frame/12)%2===0) {
+    ctx.fillStyle='rgba(255,0,0,0.07)'; ctx.fillRect(0,0,W,H);
   }
+  px('GAME', W/2, 150, 72, C.red, 'center');
+  px('OVER', W/2, 222, 72, C.red, 'center');
+  px(`RACES WON: ${run.wins} / ${run.raceNum-1}`, W/2, 298, 14, C.white, 'center');
+  px(`BEST SPEED: ${run.bestSpeed} MPH`, W/2, 322, 13, C.cyan, 'center');
 
-  px('GAME', W / 2, 150, 72, C.red, 'center');
-  px('OVER', W / 2, 222, 72, C.red, 'center');
-
-  px(`RACES WON: ${run.wins} / ${run.raceNum - 1}`, W / 2, 298, 14, C.white, 'center');
-  px(`BEST SPEED: ${run.bestSpeed} MPH`, W / 2, 322, 13, C.cyan, 'center');
+  // Show car used
+  const cName = `'${String(playerCar.year).slice(-2)} ${playerCar.make} ${playerCar.model}`;
+  px(cName, W/2, 346, 10, '#665544', 'center');
 
   if (player.upgradeList.length > 0) {
-    px('BUILD:', W / 2, 352, 12, C.yellow, 'center');
-    player.upgradeList.slice(-4).forEach((u, i) => {
-      px(u, W / 2, 372 + i * 18, 11, '#aaa', 'center');
+    px('BUILD:', W/2, 368, 12, C.yellow, 'center');
+    player.upgradeList.slice(-4).forEach((u,i) => {
+      px(u, W/2, 388+i*18, 11, '#aaa', 'center');
     });
   }
-
-  if (Math.floor(frame / 35) % 2 === 0)
-    px('SPACE TO RETRY', W / 2, H - 36, 14, C.white, 'center');
+  if (Math.floor(frame/35)%2===0)
+    px('SPACE TO TRY AGAIN', W/2, H-36, 14, C.white, 'center');
 }
 
 function drawWin() {
-  ctx.fillStyle = '#001200';
-  ctx.fillRect(0, 0, W, H);
-
-  if (Math.floor(frame / 7) % 2 === 0) {
-    ctx.fillStyle = 'rgba(57,255,20,0.07)';
-    ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle='#001200'; ctx.fillRect(0,0,W,H);
+  if (Math.floor(frame/7)%2===0) {
+    ctx.fillStyle='rgba(57,255,20,0.07)'; ctx.fillRect(0,0,W,H);
   }
 
-  px('YOU', W / 2, 130, 72, C.neon, 'center');
-  px('WIN!', W / 2, 206, 72, C.yellow, 'center');
+  // The King fallen header
+  ctx.fillStyle = '#1a0000';
+  ctx.fillRect(20, 48, W-40, 46);
+  ctx.strokeStyle = C.red; ctx.lineWidth = 1;
+  ctx.strokeRect(20, 48, W-40, 46);
+  px('THE KING HAS FALLEN', W/2, 78, 14, C.red, 'center');
+  px('1969 SHELBY GT500 DEFEATED', W/2, 94, 10, '#884422', 'center');
 
-  px('ALL 5 RACES COMPLETE!', W / 2, 270, 14, C.cyan, 'center');
-  px(`BEST SPEED: ${run.bestSpeed} MPH`, W / 2, 296, 13, C.white, 'center');
+  ctx.fillStyle = C.yellow;
+  ctx.fillRect(40, 108, W-80, 2);
+
+  px('YOU', W/2, 168, 72, C.neon, 'center');
+  px('WIN!', W/2, 240, 72, C.yellow, 'center');
+
+  px('ALL 5 RACES COMPLETE!', W/2, 292, 14, C.cyan, 'center');
+  px(`BEST SPEED: ${run.bestSpeed} MPH`, W/2, 316, 13, C.white, 'center');
+
+  const cName = `'${String(playerCar.year).slice(-2)} ${playerCar.make} ${playerCar.model}`;
+  px(cName, W/2, 336, 10, '#66aa44', 'center');
 
   if (player.upgradeList.length > 0) {
-    px('FINAL BUILD:', W / 2, 328, 12, C.yellow, 'center');
-    player.upgradeList.forEach((u, i) => {
-      px(u, W / 2, 348 + i * 18, 11, '#aaa', 'center');
+    px('FINAL BUILD:', W/2, 360, 12, C.yellow, 'center');
+    player.upgradeList.forEach((u,i) => {
+      px(u, W/2, 378+i*18, 11, '#aaa', 'center');
     });
   }
-
-  if (Math.floor(frame / 35) % 2 === 0)
-    px('SPACE TO PLAY AGAIN', W / 2, H - 36, 14, C.white, 'center');
+  if (Math.floor(frame/35)%2===0)
+    px('SPACE TO PLAY AGAIN', W/2, H-36, 14, C.white, 'center');
 }
 
 // ---- Input ----
@@ -1051,110 +1250,93 @@ document.addEventListener('keydown', e => {
   keys[e.code] = true;
   initAudio();
 
-  if (state === 'menu' && (e.code === 'Space' || e.code === 'Enter')) {
-    initRun();
-    setupRace();
+  if (state === 'menu' && (e.code==='Space'||e.code==='Enter')) {
+    state = 'carselect';
+  }
+  else if (state === 'carselect') {
+    if (e.code==='ArrowUp')   carSelectIdx = Math.max(0, carSelectIdx-1);
+    if (e.code==='ArrowDown') carSelectIdx = Math.min(CARS.length-1, carSelectIdx+1);
+    if (e.code==='Space'||e.code==='Enter') {
+      playerCar = CARS[carSelectIdx];
+      initRun();
+      setupRace();
+    }
+  }
+  else if (state === 'countdown') {
+    if (preCountdownTimer > 0) {
+      preCountdownTimer = 0; // skip boss intro
+    }
   }
   else if (state === 'racing') {
-    if (e.code === 'Space') shiftUp();
-    if (e.code === 'KeyN') useNOS();
+    if (e.code==='Space') shiftUp();
+    if (e.code==='KeyN')  useNOS();
   }
   else if (state === 'upgrade') {
-    if (e.code === 'ArrowUp')   selectedUpg = Math.max(0, selectedUpg - 1);
-    if (e.code === 'ArrowDown') selectedUpg = Math.min(2, selectedUpg + 1);
-    if (e.code === 'Enter' || e.code === 'Space') pickUpgradeAndContinue(selectedUpg);
+    if (e.code==='ArrowUp')   selectedUpg = Math.max(0, selectedUpg-1);
+    if (e.code==='ArrowDown') selectedUpg = Math.min(2, selectedUpg+1);
+    if (e.code==='Enter'||e.code==='Space') pickUpgradeAndContinue(selectedUpg);
   }
-  else if (state === 'gameover' || state === 'win') {
-    if (e.code === 'Space' || e.code === 'Enter') state = 'menu';
+  else if (state==='gameover'||state==='win') {
+    if (e.code==='Space'||e.code==='Enter') state = 'menu';
   }
 });
 document.addEventListener('keyup', e => { keys[e.code] = false; });
-
-// Prevent space scroll
 window.addEventListener('keydown', e => {
-  if (e.code === 'Space') e.preventDefault();
+  if (e.code==='Space') e.preventDefault();
 }, { passive: false });
 
 // ---- Music ----
-let musicNodes = [];
-let musicPlaying = false;
+let musicNodes = [], musicPlaying = false;
 
 function stopMusic() {
-  musicNodes.forEach(n => { try { n.stop(); } catch(e){} });
-  musicNodes = [];
-  musicPlaying = false;
+  musicNodes.forEach(n => { try{n.stop();}catch(e){} });
+  musicNodes = []; musicPlaying = false;
 }
 
 function playMusic() {
   if (!audioCtx || musicPlaying) return;
-  stopMusic();
-  musicPlaying = true;
-
-  // 8-bit NES-style theme: "Street Kings" - pentatonic riff, square wave
-  const BPM = 172;
-  const B = 60 / BPM;       // 1 beat
-  const S = B / 2;           // 1 step (eighth note)
-
-  // Melody: freq, duration, delay
+  stopMusic(); musicPlaying = true;
+  const BPM=172, B=60/BPM, S=B/2;
   const melody = [
-    // Bar 1 — driving hook
     [330,S*1,0],[392,S*0.5,S],[440,S*0.5,S*1.5],[494,S*1,S*2],[440,S*0.5,S*3],[392,S*0.5,S*3.5],
     [330,S*1,S*4],[0,S*0.5,S*5],[330,S*0.5,S*5.5],[370,S*1,S*6],[330,S*0.5,S*7],[294,S*0.5,S*7.5],
-    // Bar 2 — build
     [330,S*0.5,S*8],[392,S*0.5,S*8.5],[440,S*1,S*9],[494,S*0.5,S*10],[523,S*0.5,S*10.5],[587,S*1,S*11],[523,S*0.5,S*12],[494,S*0.5,S*12.5],
     [440,S*1,S*13],[392,S*0.5,S*14],[440,S*0.5,S*14.5],[494,S*2,S*15],
-    // Bar 3 — answer phrase
     [659,S*1,S*17],[587,S*0.5,S*18],[523,S*0.5,S*18.5],[494,S*1,S*19],[440,S*0.5,S*20],[392,S*0.5,S*20.5],
     [330,S*1.5,S*21],[294,S*0.5,S*22.5],[330,S*0.5,S*23],[370,S*0.5,S*23.5],
-    // Bar 4 — resolve + loop tag
     [392,S*1,S*24],[440,S*0.5,S*25],[494,S*0.5,S*25.5],[440,S*1,S*26],[392,S*0.5,S*27],[370,S*0.5,S*27.5],
     [330,S*3,S*28],[0,S*1,S*31],
   ];
-
-  const loopLen = S * 32;
-
+  const loopLen = S*32;
   function scheduleLoop(startTime) {
     if (!musicPlaying) return;
-    melody.forEach(([freq, dur, offset]) => {
-      if (freq === 0) return;
-      const osc = audioCtx.createOscillator();
-      const g   = audioCtx.createGain();
+    melody.forEach(([freq,dur,offset]) => {
+      if (freq===0) return;
+      const osc=audioCtx.createOscillator(), g=audioCtx.createGain();
       osc.connect(g); g.connect(audioCtx.destination);
-      osc.type = 'square';
-      osc.frequency.value = freq;
-      const t0 = startTime + offset;
-      const t1 = t0 + dur * 0.88;
-      g.gain.setValueAtTime(0.055, t0);
-      g.gain.setValueAtTime(0.055, t1 - 0.01);
-      g.gain.linearRampToValueAtTime(0, t1);
-      osc.start(t0); osc.stop(t1);
-      musicNodes.push(osc);
+      osc.type='square'; osc.frequency.value=freq;
+      const t0=startTime+offset, t1=t0+dur*0.88;
+      g.gain.setValueAtTime(0.055,t0); g.gain.setValueAtTime(0.055,t1-0.01);
+      g.gain.linearRampToValueAtTime(0,t1);
+      osc.start(t0); osc.stop(t1); musicNodes.push(osc);
     });
-    // Bass line
-    const bassLine = [
+    const bassLine=[
       [82,S*2,0],[98,S*2,S*2],[110,S*2,S*4],[98,S*2,S*6],
       [82,S*2,S*8],[98,S*2,S*10],[123,S*2,S*12],[110,S*2,S*14],
       [82,S*2,S*16],[98,S*2,S*18],[110,S*2,S*20],[98,S*2,S*22],
       [82,S*2,S*24],[110,S*2,S*26],[98,S*2,S*28],[82,S*2,S*30],
     ];
-    bassLine.forEach(([freq, dur, offset]) => {
-      const osc = audioCtx.createOscillator();
-      const g   = audioCtx.createGain();
+    bassLine.forEach(([freq,dur,offset]) => {
+      const osc=audioCtx.createOscillator(), g=audioCtx.createGain();
       osc.connect(g); g.connect(audioCtx.destination);
-      osc.type = 'sawtooth';
-      osc.frequency.value = freq;
-      const t0 = startTime + offset;
-      const t1 = t0 + dur * 0.8;
-      g.gain.setValueAtTime(0.03, t0);
-      g.gain.linearRampToValueAtTime(0, t1);
-      osc.start(t0); osc.stop(t1);
-      musicNodes.push(osc);
+      osc.type='sawtooth'; osc.frequency.value=freq;
+      const t0=startTime+offset, t1=t0+dur*0.8;
+      g.gain.setValueAtTime(0.03,t0); g.gain.linearRampToValueAtTime(0,t1);
+      osc.start(t0); osc.stop(t1); musicNodes.push(osc);
     });
-    // Schedule next loop
-    setTimeout(() => scheduleLoop(startTime + loopLen), (loopLen - 0.5) * 1000);
+    setTimeout(()=>scheduleLoop(startTime+loopLen),(loopLen-0.5)*1000);
   }
-
-  scheduleLoop(audioCtx.currentTime + 0.05);
+  scheduleLoop(audioCtx.currentTime+0.05);
 }
 
 // ---- Touch Controls ----
@@ -1163,44 +1345,54 @@ const tRace    = document.getElementById('touch-race');
 const tMenu    = document.getElementById('touch-menu');
 const tUpgrade = document.getElementById('touch-upgrade');
 const tOver    = document.getElementById('touch-over');
+const tCarSel  = document.getElementById('touch-carsel');
 
 function updateTouchUI() {
   const isTouch = navigator.maxTouchPoints > 0;
   touchUI.style.display  = isTouch ? 'block' : 'none';
-  tRace.style.display    = (isTouch && (state === 'racing' || state === 'countdown')) ? 'flex' : 'none';
-  tMenu.style.display    = (isTouch && state === 'menu') ? 'block' : 'none';
-  tUpgrade.style.display = (isTouch && state === 'upgrade') ? 'flex' : 'none';
-  tOver.style.display    = (isTouch && (state === 'gameover' || state === 'win')) ? 'block' : 'none';
+  tRace.style.display    = (isTouch && (state==='racing'||state==='countdown')) ? 'flex' : 'none';
+  tMenu.style.display    = (isTouch && state==='menu') ? 'block' : 'none';
+  tUpgrade.style.display = (isTouch && state==='upgrade') ? 'flex' : 'none';
+  tOver.style.display    = (isTouch && (state==='gameover'||state==='win')) ? 'block' : 'none';
+  tCarSel.style.display  = (isTouch && state==='carselect') ? 'flex' : 'none';
 }
 
 function touchAction(action) {
   initAudio();
-  if (action === 'start')  { initRun(); setupRace(); }
-  if (action === 'shift')  { shiftUp(); }
-  if (action === 'nos')    { useNOS(); }
-  if (action === 'up')     { selectedUpg = Math.max(0, selectedUpg - 1); }
-  if (action === 'down')   { selectedUpg = Math.min(2, selectedUpg + 1); }
-  if (action === 'select') { pickUpgradeAndContinue(selectedUpg); }
-  if (action === 'retry')  { state = 'menu'; }
+  if (action==='start')   { state='carselect'; }
+  if (action==='carUp')   { carSelectIdx=Math.max(0,carSelectIdx-1); }
+  if (action==='carDown') { carSelectIdx=Math.min(CARS.length-1,carSelectIdx+1); }
+  if (action==='carSel')  { playerCar=CARS[carSelectIdx]; initRun(); setupRace(); }
+  if (action==='shift')   { shiftUp(); }
+  if (action==='nos')     { useNOS(); }
+  if (action==='up')      { selectedUpg=Math.max(0,selectedUpg-1); }
+  if (action==='down')    { selectedUpg=Math.min(2,selectedUpg+1); }
+  if (action==='select')  { pickUpgradeAndContinue(selectedUpg); }
+  if (action==='retry')   { state='menu'; }
+  if (action==='skipBoss'){ preCountdownTimer=0; }
 }
 
 function addTouchBtn(id, action) {
   const el = document.getElementById(id);
-  el.addEventListener('touchstart', e => { e.preventDefault(); touchAction(action); }, { passive: false });
+  if (!el) return;
+  el.addEventListener('touchstart', e => { e.preventDefault(); touchAction(action); }, {passive:false});
 }
 
-addTouchBtn('btn-start',  'start');
-addTouchBtn('btn-shift',  'shift');
-addTouchBtn('btn-nos',    'nos');
-addTouchBtn('btn-up',     'up');
-addTouchBtn('btn-down',   'down');
-addTouchBtn('btn-select', 'select');
-addTouchBtn('btn-retry',  'retry');
+addTouchBtn('btn-start',    'start');
+addTouchBtn('btn-shift',    'shift');
+addTouchBtn('btn-nos',      'nos');
+addTouchBtn('btn-up',       'up');
+addTouchBtn('btn-down',     'down');
+addTouchBtn('btn-select',   'select');
+addTouchBtn('btn-retry',    'retry');
+addTouchBtn('btn-car-up',   'carUp');
+addTouchBtn('btn-car-sel',  'carSel');
+addTouchBtn('btn-car-down', 'carDown');
 
 // ---- Main Loop ----
 let lastTs = 0;
 function loop(ts) {
-  const dt = Math.min((ts - lastTs) / 1000, 0.05);
+  const dt = Math.min((ts-lastTs)/1000, 0.05);
   lastTs = ts;
   frame++;
 
@@ -1210,42 +1402,50 @@ function loop(ts) {
   if (flashMsg.timer > 0) flashMsg.timer -= dt;
   updateTouchUI();
 
-  switch (state) {
+  switch(state) {
 
     case 'menu':
       stopMusic();
       drawMenu();
       break;
 
+    case 'carselect':
+      stopMusic();
+      drawCarSelect();
+      break;
+
     case 'countdown': {
+      // Boss intro pre-phase
+      if (preCountdownTimer > 0) {
+        preCountdownTimer -= dt;
+        trackOffset += 8*dt;
+        drawBossIntroOverlay();
+        break;
+      }
+
       cdFlash += dt;
       cdTimer -= dt;
-
-      if (race.state === 'countdown') {
-        // Update track scroll slowly
-        trackOffset += 20 * dt;
-      }
+      trackOffset += 20*dt;
 
       if (cdTimer <= 0) {
         countdown--;
         if (countdown > 0) {
-          cdTimer = 1; cdFlash = 0;
+          cdTimer=1; cdFlash=0;
           playCountBeep(false);
-        } else if (countdown === 0) {
-          cdTimer = 0.85; cdFlash = 0;
+        } else if (countdown===0) {
+          cdTimer=0.85; cdFlash=0;
           playCountBeep(true);
         } else {
-          // Start!
-          race.state = 'go';
-          player.launched = true;
-          player.rpm = 3200 * player.launchBoost;
-          player.speed = 22 * player.launchBoost;
-          state = 'racing';
+          race.state='go';
+          player.launched=true;
+          player.rpm=3200*player.launchBoost;
+          player.speed=22*player.launchBoost;
+          state='racing';
           playMusic();
         }
       }
 
-      drawCountdownScreen(dt);
+      drawCountdownScreen();
       break;
     }
 
@@ -1256,21 +1456,13 @@ function loop(ts) {
       raceTimer += dt;
       trackOffset += player.speed * TRACK_SCALE * dt;
 
-      // Check finish
-      if (!race.finishPlayer && player.dist >= RACE_DIST) {
-        race.finishPlayer = raceTimer;
-      }
-      if (!race.finishOpponent && opponent.dist >= RACE_DIST) {
-        race.finishOpponent = raceTimer;
-      }
+      if (!race.finishPlayer  && player.dist   >= RACE_DIST) race.finishPlayer  = raceTimer;
+      if (!race.finishOpponent && opponent.dist >= RACE_DIST) race.finishOpponent = raceTimer;
 
-      // End race conditions
-      const bothDone = race.finishPlayer !== null && race.finishOpponent !== null;
-      const playerDone = race.finishPlayer !== null;
-      const oppFar = race.finishOpponent !== null && (opponent.dist - player.dist > 120);
-      if (bothDone || (playerDone && !race.finishOpponent) || oppFar) {
-        endRace();
-      }
+      const bothDone  = race.finishPlayer!==null && race.finishOpponent!==null;
+      const playerDone = race.finishPlayer!==null;
+      const oppFar    = race.finishOpponent!==null && (opponent.dist-player.dist > 120);
+      if (bothDone || (playerDone && !race.finishOpponent) || oppFar) endRace();
 
       drawRaceScreen();
       break;
@@ -1278,15 +1470,12 @@ function loop(ts) {
 
     case 'result': {
       resultTimer -= dt;
-      trackOffset += 15 * dt;
+      trackOffset += 15*dt;
       drawResultScreen();
       if (resultTimer <= 0) {
-        if (run.lives <= 0) { state = 'gameover'; }
-        else if (run.raceNum >= 5 && raceResult === 'win') { state = 'win'; }
-        else {
-          generateUpgrades();
-          state = 'upgrade';
-        }
+        if (run.lives <= 0) { state='gameover'; }
+        else if (run.raceNum >= 5 && raceResult==='win') { state='win'; }
+        else { generateUpgrades(); state='upgrade'; }
       }
       break;
     }
